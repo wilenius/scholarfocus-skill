@@ -29,10 +29,24 @@ _TYPE_MAP = {
 _FTS_UNSAFE = re.compile(r'["\'()*:^-]')
 
 
-def _fts_query(text: str) -> str:
+def _fts_tokens(text: str) -> list[str]:
     cleaned = _FTS_UNSAFE.sub(" ", text or "")
-    tokens = [t for t in cleaned.split() if t]
-    return " ".join(f'"{t}"' for t in tokens)
+    return [t for t in cleaned.split() if t]
+
+
+def _fts_query(text: str, *, operator: str = "AND") -> str:
+    """Build an FTS5 query.
+
+    FTS5 ANDs bare terms. The index covers only title, journal and author --
+    there are no abstracts -- so requiring every term in that little text is
+    very strict: "plantation ethnography" matches nothing across 6.6M records
+    even though each word alone matches over a thousand.
+    """
+    tokens = _fts_tokens(text)
+    if not tokens:
+        return ""
+    joiner = " OR " if operator == "OR" else " "
+    return joiner.join(f'"{t}"' for t in tokens)
 
 
 class JstorIndex:
@@ -111,7 +125,21 @@ class JstorIndex:
         languages: Optional[Iterable[str]] = None,
         limit: int = 50,
     ) -> list[Record]:
-        q = _fts_query(text)
+        if not _fts_tokens(text):
+            return []
+        rows = self._search_raw(text, "AND", disciplines, types, from_year,
+                                to_year, languages, limit)
+        if not rows and len(_fts_tokens(text)) > 1:
+            # bm25 still ranks records matching more terms highest, so the
+            # looser pass degrades relevance rather than precision.
+            logger.debug("No AND match for %r; retrying with OR", text)
+            rows = self._search_raw(text, "OR", disciplines, types, from_year,
+                                    to_year, languages, limit)
+        return [self._row_to_record(r) for r in rows]
+
+    def _search_raw(self, text, operator, disciplines, types, from_year,
+                    to_year, languages, limit):
+        q = _fts_query(text, operator=operator)
         if not q:
             return []
         sql = [
@@ -144,8 +172,7 @@ class JstorIndex:
         sql.append("ORDER BY rank LIMIT ?")
         params.append(limit)
 
-        rows = self.conn.execute(" ".join(sql), params).fetchall()
-        return [self._row_to_record(r) for r in rows]
+        return self.conn.execute(" ".join(sql), params).fetchall()
 
     def find_by_doi(self, doi: str) -> Optional[Record]:
         d = str(doi).strip()
