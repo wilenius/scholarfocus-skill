@@ -27,7 +27,8 @@ from scholarlib.config import ConfigError, load_config, warn_if_no_openalex_key
 from scholarlib.http.budget import BudgetExceeded
 from scholarlib.pipeline.context import build_context
 from scholarlib.pipeline.disambiguate import (
-    AmbiguousAuthor, resolve_author, resolve_via_orcid)
+    AmbiguousAuthor, is_orcid, looks_like_orcid, resolve_author,
+    resolve_via_orcid)
 from scholarlib.pipeline import profile as analyze
 
 
@@ -79,6 +80,14 @@ def resolve_researcher(identifier: str, oa, s2, *, orcid=None,
     hints = hints or {}
     logger.info("Resolving researcher: %s", identifier)
 
+    # A malformed ORCID is a typo, not a name: searching for it matches junk
+    # profiles whose display names happen to contain the digits.
+    if looks_like_orcid(identifier) and not is_orcid(identifier):
+        raise ValueError(
+            f"{identifier} is not a valid ORCID: the check digit is wrong. "
+            "Verify it at https://orcid.org/"
+        )
+
     author = None
     ambiguous: Optional[AmbiguousAuthor] = None
     try:
@@ -105,6 +114,7 @@ def resolve_researcher(identifier: str, oa, s2, *, orcid=None,
         if via is not None:
             logger.info("  Resolved via ORCID: %s", via.get("display_name"))
             return {"source": "orcid", "data": via}
+        logger.info("  ORCID had nothing usable for %r", identifier)
 
     if author is None:
         if ambiguous:

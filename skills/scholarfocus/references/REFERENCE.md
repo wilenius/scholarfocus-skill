@@ -1,12 +1,16 @@
 # ScholarFocus — Technical Reference
 
+> **Updated 2026-09-20.** Code now lives in the `scholarlib` package; run
+> `python -m scholarlib.cli.scholarfocus` from the repo root. See
+> `docs/api-status.md` for live credential status and OpenAlex credit costs.
+
 ## Setup
 
 ```bash
 pip install -r requirements.txt
 cp config.example.yaml config.yaml
 # Edit config.yaml — add your email at minimum
-python scripts/scholarfocus.py --researchers "Test User" --output json
+python -m scholarlib.cli.scholarfocus --researchers "Test User" --output json
 ```
 
 ## Config file reference (`config.yaml`)

@@ -1,6 +1,6 @@
 ---
 name: scholarfocus
-description: Profile one or more named researchers (people) by name or ORCID ID. Resolves the person in OpenAlex, fetches their works, and outputs ranked research interests, their main co-authors, and the external works they cite most. Use when the user names a specific scholar and asks what they work on, who they collaborate with, what they cite, or how the networks of two named scholars compare. Do NOT use for topic-based literature searches or literature reviews — use the litreview skill for those.
+description: Profile one or more named researchers (people) by name or ORCID ID. Resolves the person in OpenAlex and ORCID, fetches their works, and outputs ranked research interests, their main co-authors, and the external works they cite most. Use when the user names a specific scholar and asks what they work on, who they collaborate with, what they cite, or how the networks of two named scholars compare. Do NOT use for topic-based literature searches or literature reviews — use the litreview skill for those.
 license: MIT
 compatibility: Requires Python 3.11+, internet access, and the scholarlib package from this repo (`pip install -e <repo root>`, or run from the repo root). A config.yaml at the repo root supplies API emails/keys. See references/REFERENCE.md.
 metadata:
@@ -42,8 +42,32 @@ python -m scholarlib.cli.scholarfocus --researchers "T Tammisto" \
 ```
 
 **Flags:** `--researchers` (required), `--config`, `--output markdown|json`,
-`--log-level`, plus `--author-id`, `--field`, `--institution`, `--active-years`
-for disambiguation.
+`--log-level`, `--enable-s2ag`, `--no-cache`, plus `--author-id`, `--field`,
+`--institution`, `--active-years` for disambiguation.
+
+## Resolution
+
+OpenAlex is tried first. When it is thin, missing or ambiguous, **ORCID** is
+consulted — its public API needs no key and its work list is author-curated, so
+it is markedly better for researchers OpenAlex has fragmented. Tuomas Tammisto
+has 1 work in OpenAlex and 50 in ORCID.
+
+Two failure modes this guards against, both of which used to produce confident
+wrong answers:
+
+- **Wrong person.** Picking the candidate with the most works resolved
+  "Tuomas Tammisto" to a 1970s anaesthesiologist and reported his interests as
+  Fentanyl and Halothane. Candidates are now scored on ORCID, institution,
+  field fit and active years, and the tool exits 4 with a candidate list rather
+  than guessing between plausibly different people.
+- **Conflated records.** OpenAlex sometimes merges two researchers who share a
+  surname and initial into one author record. When the work list comes from
+  ORCID, that list is the authoritative scope: metrics are computed from those
+  works and the OpenAlex aggregates are discarded with a warning, rather than
+  reporting someone else's h-index.
+
+If a profile looks thin or the warning mentions a conflation, supply the
+researcher's ORCID directly — it is always the most reliable input.
 
 ## Output
 

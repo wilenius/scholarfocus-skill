@@ -327,6 +327,14 @@ def resolve_via_orcid(oa, orcid_client, name: str, *,
     hits = find_orcid_by_name(orcid_client, name)
     if not hits:
         return None
+    # ORCID's expanded search is fuzzy enough to match profiles whose display
+    # name merely contains the query tokens, so require a real surname match.
+    wanted_surname = dedup.normalize_surname(name)
+    if wanted_surname:
+        hits = [h for h in hits
+                if dedup.normalize_surname(h.get("name")) == wanted_surname]
+    if not hits:
+        return None
     if institution:
         want = dedup.normalize_text(institution)
         narrowed = [h for h in hits
@@ -346,6 +354,13 @@ def resolve_via_orcid(oa, orcid_client, name: str, *,
         logger.info("Resolved %r via ORCID %s -> OpenAlex %s",
                     name, orcid, author.get("display_name"))
         return author
+
+    try:
+        if not orcid_client.get_works(orcid, max_works=1):
+            logger.info("ORCID %s lists no works; not using it", orcid)
+            return None
+    except Exception as e:
+        logger.debug("ORCID works probe failed: %s", e)
 
     logger.info("ORCID %s has no OpenAlex author record; continuing on ORCID data",
                 orcid)
