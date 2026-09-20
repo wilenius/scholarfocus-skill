@@ -301,10 +301,16 @@ def compile_cited_works(
             work_meta[wid] = w
 
     cited_works = []
+    missing = 0
     for wid, count in combined_counts.most_common():
         if len(cited_works) >= top_n:
             break
-        meta = work_meta.get(wid, {})
+        meta = work_meta.get(wid)
+        if not meta:
+            # Metadata never resolved: emitting a record here produced the
+            # `**None**` entries in the old output. Skip and count instead.
+            missing += 1
+            continue
         authors = []
         for auth in meta.get("authorships", [])[:5]:
             name = _author_display_name(auth)
@@ -322,4 +328,6 @@ def compile_cited_works(
             }
         )
 
+    if missing:
+        logger.info("Skipped %d cited works whose metadata could not be resolved", missing)
     return cited_works

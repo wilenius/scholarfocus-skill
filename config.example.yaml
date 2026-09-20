@@ -23,6 +23,8 @@ apis:
 
   openaire: {}                        # no credentials needed
 
+  orcid: {}                           # public API, no credentials needed
+
 zotero:
   enabled: true
   base_url: http://localhost:23119/api/users/0

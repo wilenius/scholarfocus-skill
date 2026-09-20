@@ -19,10 +19,15 @@ import sys
 from typing import Optional
 
 
-from scholarlib.apis.openalex import OpenAlexClient
+from scholarlib.apis.openalex import WORK_FIELDS, OpenAlexClient
 from scholarlib.apis.semantic_scholar import SemanticScholarClient
 from scholarlib.apis.core_api import COREClient
+from scholarlib import dedup
 from scholarlib.config import ConfigError, load_config, warn_if_no_openalex_key
+from scholarlib.http.budget import BudgetExceeded
+from scholarlib.pipeline.context import build_context
+from scholarlib.pipeline.disambiguate import (
+    AmbiguousAuthor, resolve_author, resolve_via_orcid)
 from scholarlib.pipeline import profile as analyze
 
 
@@ -37,35 +42,220 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+EXIT_OK, EXIT_ERR, EXIT_BUDGET, EXIT_CONFIG, EXIT_AMBIGUOUS = 0, 1, 2, 3, 4
+
 
 # ---------------------------------------------------------------------------
 # Researcher resolution
 # ---------------------------------------------------------------------------
 
-def resolve_researcher(identifier: str, oa: OpenAlexClient, s2: SemanticScholarClient) -> dict:
+def _fill_missing_abstracts(core, works: list[dict]) -> int:
+    """Fill abstracts from CORE for works that still lack one."""
+    filled = 0
+    for w in works:
+        if w.get("abstract") or w.get("abstract_inverted_index"):
+            continue
+        doi = w.get("doi")
+        if not doi:
+            continue
+        text = core.get_abstract(doi)
+        if text:
+            w["abstract"] = text
+            filled += 1
+    if filled:
+        logger.info("  CORE filled %d missing abstracts", filled)
+    return filled
+
+
+def resolve_researcher(identifier: str, oa, s2, *, orcid=None,
+                       hints: Optional[dict] = None,
+                       min_works: int = 5) -> dict:
+    """Resolve a name or ORCID to one author.
+
+    OpenAlex is tried first. When it comes back thin or ambiguous, ORCID is
+    consulted: its records are self-registered and self-curated, so it is
+    markedly better for researchers OpenAlex has fragmented.
     """
-    Try to find a researcher in OpenAlex (primary) then S2AG (fallback).
-    Returns a dict with at least: source, id, name.
-    Raises ValueError if not found anywhere.
-    """
+    hints = hints or {}
     logger.info("Resolving researcher: %s", identifier)
-    author = oa.get_author(identifier)
-    if author:
-        logger.info("  Found in OpenAlex: %s (%s)", author.get("display_name"), author.get("id"))
-        return {"source": "openalex", "data": author}
 
-    logger.warning("  Not found in OpenAlex, trying Semantic Scholar…")
-    s2_author = s2.get_author(identifier)
-    if s2_author:
-        logger.info("  Found in S2AG: %s", s2_author.get("name"))
-        return {"source": "semantic_scholar", "data": s2_author}
+    author = None
+    ambiguous: Optional[AmbiguousAuthor] = None
+    try:
+        author = resolve_author(
+            oa, identifier,
+            institution=hints.get("institution"),
+            field_hint=hints.get("field"),
+            active_years=hints.get("active_years"),
+            author_id=hints.get("author_id"),
+        )
+    except AmbiguousAuthor as e:
+        ambiguous = e
+    except ValueError as e:
+        logger.info("  OpenAlex: %s", e)
 
-    raise ValueError(f"Could not resolve researcher '{identifier}' in any API")
+    thin = (author or {}).get("works_count", 0) < min_works
+    if orcid is not None and not hints.get("author_id") and (author is None or thin or ambiguous):
+        why = ("ambiguous in OpenAlex" if ambiguous
+               else "not found in OpenAlex" if author is None
+               else f"only {author.get('works_count', 0)} work(s) in OpenAlex")
+        logger.info("  %s — trying ORCID", why)
+        via = resolve_via_orcid(oa, orcid, identifier,
+                                institution=hints.get("institution"))
+        if via is not None:
+            logger.info("  Resolved via ORCID: %s", via.get("display_name"))
+            return {"source": "orcid", "data": via}
+
+    if author is None:
+        if ambiguous:
+            raise ambiguous
+        raise ValueError(f"Could not resolve researcher {identifier!r}")
+
+    logger.info("  Found in OpenAlex: %s (%s)",
+                author.get("display_name"), author.get("id"))
+    if (author.get("works_count") or 0) < min_works:
+        logger.warning(
+            "  %s has only %d work(s) in OpenAlex; the profile will be thin.",
+            author.get("display_name"), author.get("works_count") or 0)
+    return {"source": "openalex", "data": author}
 
 
 # ---------------------------------------------------------------------------
 # Works fetching
 # ---------------------------------------------------------------------------
+
+def _orcid_id_of(author: dict) -> Optional[str]:
+    o = author.get("orcid")
+    return str(o).replace("https://orcid.org/", "").strip() if o else None
+
+
+def _hydrate_orcid_works(records, oa, max_works: int) -> list[dict]:
+    """Turn ORCID Records into OpenAlex-shaped works.
+
+    DOIs are resolved through OpenAlex singleton lookups, which cost 0 credits,
+    so a full curated bibliography can be hydrated for free. Works with no DOI,
+    or no OpenAlex counterpart, are kept as minimal stubs rather than dropped --
+    they are often the non-English material that makes ORCID worth consulting.
+    """
+    works: list[dict] = []
+    hydrated = 0
+    for rec in records[:max_works]:
+        w = None
+        if rec.doi:
+            w = oa.get_work_by_doi(rec.doi, select=WORK_FIELDS)
+        if w:
+            works.append(w)
+            hydrated += 1
+        else:
+            works.append({
+                "id": f"orcid:{rec.doi or rec.title}",
+                "doi": rec.doi,
+                "title": rec.title,
+                "publication_year": rec.year,
+                "type": rec.type,
+                "authorships": [],
+                "concepts": [], "topics": [], "keywords": [],
+                "referenced_works": [],
+                "cited_by_count": 0,
+            })
+    logger.info("  ORCID: %d/%d works hydrated from OpenAlex (0 credits)",
+                hydrated, len(works))
+    return works
+
+
+def verify_author_against_works(author: dict, works: list[dict],
+                                orcid_client=None) -> dict:
+    """Scope an ORCID-resolved profile to the ORCID work list.
+
+    OpenAlex author records are sometimes conflations of two researchers who
+    share a surname and initial. A5037591905 "T Tammisto" holds 68 anaesthesia
+    papers *and* 22 anthropology papers, so an authorship check cannot detect
+    the problem -- the ID legitimately appears on both.
+
+    When the work list came from ORCID, that list is the authoritative scope.
+    Metrics are therefore computed from those works, and the OpenAlex record's
+    aggregates (works_count, h-index) are discarded rather than reported for a
+    researcher who did not earn them.
+    """
+    author_id = str(author.get("id") or "")
+    hydrated = [w for w in works if not str(w.get("id", "")).startswith("orcid:")]
+    orcid_id = _orcid_id_of(author)
+
+    oa_works = author.get("works_count") or 0
+    if author_id.startswith("https://openalex.org/") and oa_works > max(10, 2 * len(works)):
+        logger.warning(
+            "OpenAlex author %s (%s) lists %d works, but ORCID %s lists %d. "
+            "That record is probably a conflation of more than one researcher, "
+            "so its citation metrics are being discarded rather than attributed "
+            "to the wrong person.",
+            author_id.rsplit("/", 1)[-1], author.get("display_name"),
+            oa_works, orcid_id, len(works),
+        )
+
+    name = author.get("display_name")
+    institutions = author.get("last_known_institutions") or []
+    if orcid_client is not None and orcid_id:
+        try:
+            person = orcid_client.get_person(orcid_id) or {}
+            given = (((person.get("name") or {}).get("given-names") or {}).get("value"))
+            family = (((person.get("name") or {}).get("family-name") or {}).get("value"))
+            if given or family:
+                name = " ".join(x for x in (given, family) if x)
+            emp = orcid_client.get_employments(orcid_id)
+            if emp:
+                institutions = [{"display_name": e} for e in emp]
+        except Exception as e:
+            logger.debug("ORCID person lookup failed: %s", e)
+
+    return {
+        "id": author.get("id"),
+        "display_name": name,
+        "orcid": author.get("orcid") or (f"https://orcid.org/{orcid_id}" if orcid_id else None),
+        "works_count": len(works),
+        "cited_by_count": sum((w.get("cited_by_count") or 0) for w in hydrated),
+        "last_known_institutions": institutions,
+        "summary_stats": {},
+        "_scope": "orcid",
+        "_openalex_works_count": oa_works or None,
+    }
+
+
+def fetch_works_orcid(author: dict, oa, orcid, max_works: int) -> list[dict]:
+    oid = _orcid_id_of(author)
+    if not oid or orcid is None:
+        return []
+    return _hydrate_orcid_works(orcid.get_works(oid), oa, max_works)
+
+
+def merge_orcid_works(works: list[dict], author: dict, oa, orcid,
+                      max_works: int) -> list[dict]:
+    """Add ORCID-listed works that OpenAlex's author record missed."""
+    oid = _orcid_id_of(author)
+    if not oid or orcid is None:
+        return works
+    try:
+        orcid_recs = orcid.get_works(oid)
+    except Exception as e:
+        logger.debug("ORCID works lookup failed: %s", e)
+        return works
+    if not orcid_recs:
+        return works
+
+    have_dois = {dedup.normalize_doi(w.get("doi")) for w in works}
+    have_dois.discard(None)
+    have_titles = {dedup.title_main(w.get("title")) for w in works}
+    missing = [r for r in orcid_recs
+               if (r.doi not in have_dois)
+               and (dedup.title_main(r.title) not in have_titles)]
+    if not missing:
+        return works
+    room = max(0, max_works - len(works))
+    if room <= 0:
+        return works
+    extra = _hydrate_orcid_works(missing[:room], oa, room)
+    logger.info("  ORCID added %d work(s) OpenAlex did not list", len(extra))
+    return works + extra
+
 
 def fetch_works_openalex(author_id: str, oa: OpenAlexClient, max_works: int) -> list[dict]:
     logger.info("  Fetching up to %d works from OpenAlex…", max_works)
@@ -115,7 +305,7 @@ def enrich_abstracts_s2(
     Also attempt to fill referenced_works from S2AG when missing.
     Limits API calls to works with the most citations.
     """
-    top_works = sorted(works, key=lambda w: w.get("cited_by_count", 0), reverse=True)[:50]
+    top_works = sorted(works, key=lambda w: (w.get("cited_by_count") or 0), reverse=True)[:50]
     enriched = 0
     for w in top_works:
         doi = w.get("doi")
@@ -128,14 +318,14 @@ def enrich_abstracts_s2(
             continue
         if not doi:
             continue
-        paper = s2.get_paper(f"DOI:{doi}")
+        paper = s2.get_paper_by_doi(doi)
         if not paper:
             continue
         if not has_abstract and paper.get("abstract"):
             w["abstract"] = paper["abstract"]
             enriched += 1
         if not has_refs:
-            refs = s2.get_paper_references(paper["paperId"], max_refs=max_refs)
+            refs = []  # reference lists come from OpenAlex referenced_works
             for ref in refs:
                 ref_doi = (ref.get("externalIds") or {}).get("DOI")
                 if ref_doi:
@@ -229,17 +419,20 @@ def format_json(result: dict) -> str:
 # Main orchestration
 # ---------------------------------------------------------------------------
 
-def run(identifiers: list[str], cfg: dict, output_format: str) -> str:
-    api_cfg  = cfg.get("apis", {})
+def run(identifiers: list[str], cfg: dict, output_format: str,
+        hints: Optional[dict] = None, *, use_cache: bool = True,
+        enable_s2ag: bool = False) -> str:
     analysis_cfg = cfg.get("analysis", {})
     max_works = analysis_cfg.get("max_works_per_researcher", 100)
     max_refs  = analysis_cfg.get("max_references_per_work", 50)
     top_n_cited = analysis_cfg.get("top_n_cited_works", 20)
 
-    oa   = OpenAlexClient(email=api_cfg.get("openalex", {}).get("email"))
-    s2   = SemanticScholarClient(api_key=api_cfg.get("semantic_scholar", {}).get("api_key"))
-    core = COREClient(api_key=api_cfg.get("core", {}).get("api_key"))
-    # CrossRef (CrossRefClient) is available for import in agent-driven enrichment steps
+    ctx  = build_context(cfg, use_cache=use_cache, enable_s2ag=enable_s2ag)
+    oa   = ctx.clients["openalex"]
+    s2   = ctx.clients["semantic_scholar"]
+    core = ctx.clients["core"]
+    orcid = ctx.clients.get("orcid")
+    warn_if_no_openalex_key(cfg)
 
     researcher_results: list[dict] = []
     all_researcher_author_ids: set[str] = set()
@@ -248,7 +441,7 @@ def run(identifiers: list[str], cfg: dict, output_format: str) -> str:
     # --- Phase 1: Resolve & fetch ---
     for ident in identifiers:
         try:
-            resolved = resolve_researcher(ident, oa, s2)
+            resolved = resolve_researcher(ident, oa, s2, orcid=orcid, hints=hints)
         except ValueError as e:
             logger.error("%s — skipping", e)
             continue
@@ -258,8 +451,15 @@ def run(identifiers: list[str], cfg: dict, output_format: str) -> str:
         author_id = author.get("id") or ""
         all_researcher_author_ids.add(author_id)
 
-        if source == "openalex":
+        if source == "orcid":
+            works = fetch_works_orcid(author, oa, orcid, max_works)
+            author = verify_author_against_works(author, works, orcid)
+            author_id = author.get("id") or ""
+        elif source == "openalex":
             works = fetch_works_openalex(author_id, oa, max_works)
+            # A curated ORCID list can be much fuller than OpenAlex's.
+            if orcid is not None and author.get("orcid") and len(works) < max_works:
+                works = merge_orcid_works(works, author, oa, orcid, max_works)
         else:
             s2_id = author.get("authorId") or ""
             works = fetch_works_s2ag(s2_id, s2, max_works)
@@ -270,7 +470,7 @@ def run(identifiers: list[str], cfg: dict, output_format: str) -> str:
 
         # Enrich missing abstracts from CORE
         if core.api_key:
-            core.enrich_missing_abstracts(works)
+            _fill_missing_abstracts(core, works)
 
         # Collect all work IDs (to filter self-citations later)
         for w in works:
@@ -302,9 +502,28 @@ def run(identifiers: list[str], cfg: dict, output_format: str) -> str:
 
     # --- Phase 3: Fetch cited-work metadata ---
     logger.info("Fetching metadata for top %d external cited works…", len(all_ext_ref_ids))
-    # Only fetch OpenAlex IDs (skip s2: or doi: prefixed IDs from S2AG fallback path)
+    max_fetch = analysis_cfg.get("max_cited_works_fetched", 200)
     oa_ref_ids = [i for i in all_ext_ref_ids if i.startswith("https://openalex.org/")]
-    fetched_works = oa.get_works_batch(oa_ref_ids[:200])  # cap at 200 IDs
+    fetched_works = oa.get_works_batch(oa_ref_ids[:max_fetch])
+
+    # DOI-prefixed pseudo-IDs used to be discarded outright. OpenAlex singleton
+    # lookups are free, so resolve them instead of throwing the data away.
+    doi_ref_ids = [i for i in all_ext_ref_ids if i.startswith("doi:")]
+    max_topups = analysis_cfg.get("max_singleton_topups", 50)
+    for ref in doi_ref_ids[:max_topups]:
+        w = oa.get_work_by_doi(ref[4:])
+        if w:
+            fetched_works.append(w)
+
+    # Any top-ranked ID the batch call missed: free to retry individually.
+    got = {w.get("id") for w in fetched_works}
+    missed = [i for i in oa_ref_ids[:max_fetch] if i not in got][:max_topups]
+    for ref in missed:
+        w = oa.get_work(ref)
+        if w:
+            fetched_works.append(w)
+    if missed:
+        logger.info("  Topped up %d works the batch fetch missed (0 credits)", len(missed))
 
     cited_works = analyze.compile_cited_works(analysed, fetched_works, top_n=top_n_cited)
 
@@ -342,40 +561,72 @@ def main():
         description="ScholarFocus — build a researcher network profile from open bibliographic APIs."
     )
     parser.add_argument(
-        "--researchers",
-        nargs="+",
-        required=True,
-        metavar="NAME_OR_ORCID",
+        "--researchers", nargs="+", required=True, metavar="NAME_OR_ORCID",
         help="Researcher display name(s) or ORCID IDs (e.g. '0000-0002-1234-5678')",
     )
-    parser.add_argument(
-        "--config",
-        default="config.yaml",
-        metavar="PATH",
-        help="Path to YAML config file (default: config.yaml)",
-    )
-    parser.add_argument(
-        "--output",
-        choices=["markdown", "json"],
-        default="markdown",
-        help="Output format (default: markdown)",
-    )
-    parser.add_argument(
-        "--log-level",
-        choices=["DEBUG", "INFO", "WARNING", "ERROR"],
-        default="INFO",
-    )
-    args = parser.parse_args()
+    parser.add_argument("--config", metavar="PATH",
+                        help="Path to YAML config file (default: config.yaml at the repo root)")
+    parser.add_argument("--output", choices=["markdown", "json"], default="markdown",
+                        help="Output format (default: markdown)")
+    parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"],
+                        default="INFO", help="Verbosity, written to stderr (default: INFO)")
 
+    g = parser.add_argument_group("disambiguation")
+    g.add_argument("--author-id", help="Resolve directly to this OpenAlex author ID")
+    g.add_argument("--field", help="Expected field, e.g. Anthropology")
+    g.add_argument("--institution", help="Expected institution, e.g. Helsinki")
+    g.add_argument("--active-years", help="Expected active period, e.g. 2005-2025")
+
+    g = parser.add_argument_group("data sources")
+    g.add_argument("--enable-s2ag", action="store_true",
+                   help="Use Semantic Scholar for abstracts (off by default)")
+    g.add_argument("--no-cache", action="store_true", help="Bypass the response cache")
+
+    args = parser.parse_args()
     logging.getLogger().setLevel(args.log_level)
 
-    cfg = load_config(args.config)
+    active_years = None
+    if args.active_years:
+        try:
+            lo, hi = args.active_years.split("-")
+            active_years = (int(lo), int(hi))
+        except ValueError:
+            logger.error("--active-years must look like 2005-2025")
+            sys.exit(EXIT_CONFIG)
+
+    hints = {"author_id": args.author_id, "field": args.field,
+             "institution": args.institution, "active_years": active_years}
+
     try:
-        output = run(args.researchers, cfg, args.output)
-        print(output)
-    except RuntimeError as e:
+        cfg = load_config(args.config)
+        print(run(args.researchers, cfg, args.output, hints,
+                  use_cache=not args.no_cache, enable_s2ag=args.enable_s2ag))
+    except AmbiguousAuthor as e:
+        # stdout stays machine-readable; the human-facing table goes to stderr.
+        logger.error("Ambiguous author %r — refusing to guess. Candidates:", e.query)
+        for c in e.candidates:
+            inst = (c.institutions or ["—"])[0]
+            logger.error("  %-42s  %-28s  %s", c.name[:42], inst[:28],
+                         ", ".join(c.topics[:2]))
+        logger.error("Re-run with --author-id <id>, or narrow with "
+                     "--field / --institution.")
+        print(json.dumps({"status": "ambiguous", "query": e.query,
+                          "candidates": [c.to_dict() for c in e.candidates]},
+                         indent=2, ensure_ascii=False))
+        sys.exit(EXIT_AMBIGUOUS)
+    except ConfigError as e:
+        logger.error("Configuration problem: %s", e)
+        sys.exit(EXIT_CONFIG)
+    except BudgetExceeded as e:
+        logger.error("OpenAlex daily credit budget exhausted: %s", e)
+        sys.exit(EXIT_BUDGET)
+    except KeyboardInterrupt:
+        logger.error("Interrupted")
+        sys.exit(EXIT_ERR)
+    except Exception as e:
         logger.error("ScholarFocus failed: %s", e)
-        sys.exit(1)
+        logger.debug("traceback", exc_info=True)
+        sys.exit(EXIT_ERR)
 
 
 if __name__ == "__main__":

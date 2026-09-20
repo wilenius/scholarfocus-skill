@@ -46,6 +46,7 @@ def build_context(cfg: dict, *, use_cache: bool = True, refresh: bool = False,
     from scholarlib.apis.crossref import CrossRefClient
     from scholarlib.apis.openaire import OpenAIREClient
     from scholarlib.apis.openalex import OpenAlexClient
+    from scholarlib.apis.orcid import OrcidClient
     from scholarlib.apis.semantic_scholar import SemanticScholarClient
     from scholarlib.apis.unpaywall import UnpaywallClient
     from scholarlib.apis.zotero_local import ZoteroLocalClient
@@ -80,6 +81,7 @@ def build_context(cfg: dict, *, use_cache: bool = True, refresh: bool = False,
             api_key=s2_cfg.get("api_key"),
             enabled=enable_s2ag or bool(s2_cfg.get("enabled")),
             **common),
+        "orcid": OrcidClient(**common),
         "zotero": ZoteroLocalClient(
             base_url=(cfg.get("zotero") or {}).get("base_url",
                                                    "http://localhost:23119/api/users/0"),
