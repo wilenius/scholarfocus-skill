@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "scholarlib"
+version = "0.2.0"
+description = "Shared bibliographic-API library behind the scholarfocus and litreview agent skills"
+requires-python = ">=3.11"
+dependencies = [
+    "requests>=2.31.0",
+    "pyyaml>=6.0",
+]
+
+[project.optional-dependencies]
+fast = ["rapidfuzz>=3.6"]
+zotero = ["pyzotero>=1.5"]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+scholarfocus = "scholarlib.cli.scholarfocus:main"
+litreview = "scholarlib.cli.litreview:main"
+jstor-index = "scholarlib.cli.jstor_index:main"
+
+[tool.setuptools.packages.find]
+include = ["scholarlib*"]
+
+[tool.pyright]
+pythonVersion = "3.11"
+include = ["scholarlib", "tests"]
+reportMissingImports = "warning"

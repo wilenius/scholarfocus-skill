@@ -16,8 +16,8 @@
       "keywords": [
         {
           "keyword": "Social Sciences",
-          "score": 6.152,
-          "work_count": 25,
+          "score": 6.65,
+          "work_count": 28,
           "source": "topic"
         },
         {
@@ -27,16 +27,22 @@
           "source": "topic"
         },
         {
-          "keyword": "Sociology and Political Science",
-          "score": 3.13,
+          "keyword": "Anthropology",
+          "score": 3.419,
           "work_count": 10,
-          "source": "topic"
+          "source": "concept"
         },
         {
-          "keyword": "Anthropology",
-          "score": 3.056,
-          "work_count": 9,
+          "keyword": "Politics",
+          "score": 3.314,
+          "work_count": 7,
           "source": "concept"
+        },
+        {
+          "keyword": "Sociology and Political Science",
+          "score": 3.188,
+          "work_count": 11,
+          "source": "topic"
         },
         {
           "keyword": "Arts and Humanities",
@@ -45,16 +51,16 @@
           "source": "topic"
         },
         {
-          "keyword": "Politics",
-          "score": 2.82,
-          "work_count": 6,
-          "source": "concept"
-        },
-        {
           "keyword": "Southeast Asian Sociopolitical Studies",
           "score": 1.925,
           "work_count": 3,
           "source": "topic"
+        },
+        {
+          "keyword": "Epistemology",
+          "score": 1.867,
+          "work_count": 5,
+          "source": "concept"
         },
         {
           "keyword": "Media studies",
@@ -75,6 +81,18 @@
           "source": "topic"
         },
         {
+          "keyword": "Ethnography",
+          "score": 1.322,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Phenomenon",
+          "score": 1.32,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
           "keyword": "Representation (politics)",
           "score": 1.319,
           "work_count": 2,
@@ -87,14 +105,14 @@
           "source": "topic"
         },
         {
-          "keyword": "Epistemology",
-          "score": 1.237,
-          "work_count": 3,
+          "keyword": "Situated",
+          "score": 1.232,
+          "work_count": 2,
           "source": "concept"
         },
         {
-          "keyword": "Situated",
-          "score": 1.232,
+          "keyword": "State (computer science)",
+          "score": 1.21,
           "work_count": 2,
           "source": "concept"
         },
@@ -103,6 +121,12 @@
           "score": 1.209,
           "work_count": 3,
           "source": "topic"
+        },
+        {
+          "keyword": "Publishing",
+          "score": 1.198,
+          "work_count": 2,
+          "source": "concept"
         },
         {
           "keyword": "Environmental ethics",
@@ -139,30 +163,6 @@
           "score": 0.937,
           "work_count": 1,
           "source": "topic"
-        },
-        {
-          "keyword": "Private Equity and Venture Capital",
-          "score": 0.927,
-          "work_count": 1,
-          "source": "topic"
-        },
-        {
-          "keyword": "Indigenous Studies and Ecology",
-          "score": 0.925,
-          "work_count": 3,
-          "source": "topic"
-        },
-        {
-          "keyword": "Cultural Identity and Representation",
-          "score": 0.919,
-          "work_count": 1,
-          "source": "topic"
-        },
-        {
-          "keyword": "Modernity",
-          "score": 0.911,
-          "work_count": 1,
-          "source": "concept"
         }
       ],
       "partners": [
@@ -178,6 +178,63 @@
     }
   ],
   "cited_works": [
+    {
+      "openalex_id": "https://openalex.org/W1998166548",
+      "doi": "https://doi.org/10.2307/1178666",
+      "title": "In the Realm of the Diamond Queen: Marginality in an Out-of-the-Way Place",
+      "year": 1994,
+      "authors": [
+        "Robert Wessing",
+        "Anna Tsing"
+      ],
+      "global_citation_count": 640,
+      "cited_by_focal_researchers": 2
+    },
+    {
+      "openalex_id": "https://openalex.org/W2111727027",
+      "doi": "https://doi.org/10.1215/08992363-12-2-291",
+      "title": "Millennial Capitalism: First Thoughts on a Second Coming",
+      "year": 2000,
+      "authors": [
+        "Jean Comaroff",
+        "John Comaroff"
+      ],
+      "global_citation_count": 1555,
+      "cited_by_focal_researchers": 2
+    },
+    {
+      "openalex_id": "https://openalex.org/W2728729584",
+      "doi": "https://doi.org/10.1007/978-3-658-18295-3_4",
+      "title": "Continuity and Change in Central Kalimantan: Climate Change, Monetization of Nature, and its Bearing on Value Orientations",
+      "year": 2017,
+      "authors": [
+        "Anu Lounela"
+      ],
+      "global_citation_count": 8,
+      "cited_by_focal_researchers": 2
+    },
+    {
+      "openalex_id": "https://openalex.org/W2938128188",
+      "doi": "https://doi.org/10.3828/hgr.2017.25",
+      "title": "Morality, sharing and change among the Ngaju people in Central Kalimantan",
+      "year": 2017,
+      "authors": [
+        "Anu Lounela"
+      ],
+      "global_citation_count": 9,
+      "cited_by_focal_researchers": 2
+    },
+    {
+      "openalex_id": "https://openalex.org/W4288348882",
+      "doi": "https://doi.org/10.21435/sfa.4",
+      "title": "Dwelling in Political Landscapes: Contemporary Anthropological Perspectives",
+      "year": 2019,
+      "authors": [
+        "Timo Kallinen"
+      ],
+      "global_citation_count": 35,
+      "cited_by_focal_researchers": 2
+    },
     {
       "openalex_id": "https://openalex.org/W436970179",
       "doi": null,
@@ -290,18 +347,6 @@
       "cited_by_focal_researchers": 1
     },
     {
-      "openalex_id": "https://openalex.org/W1998166548",
-      "doi": "https://doi.org/10.2307/1178666",
-      "title": "In the Realm of the Diamond Queen: Marginality in an Out-of-the-Way Place",
-      "year": 1994,
-      "authors": [
-        "Robert Wessing",
-        "Anna Tsing"
-      ],
-      "global_citation_count": 640,
-      "cited_by_focal_researchers": 1
-    },
-    {
       "openalex_id": "https://openalex.org/W2003598415",
       "doi": "https://doi.org/10.1525/eth.1984.12.2.02a00050",
       "title": "Horrific Comedy: Cultural Resistance and the Hauka Movement in Niger",
@@ -355,51 +400,6 @@
         "Liana Chua"
       ],
       "global_citation_count": 14,
-      "cited_by_focal_researchers": 1
-    },
-    {
-      "openalex_id": "https://openalex.org/W2069843238",
-      "doi": "https://doi.org/10.1163/22134379-90003694",
-      "title": "Dislodged tales: Javanese goddesses and spirits on the silver screen",
-      "year": 2008,
-      "authors": [
-        "Robert Wessing"
-      ],
-      "global_citation_count": 4,
-      "cited_by_focal_researchers": 1
-    },
-    {
-      "openalex_id": "https://openalex.org/W2073020677",
-      "doi": "https://doi.org/10.1525/aa.2005.107.3.383",
-      "title": "Beyond “the State” and Failed Schemes",
-      "year": 2005,
-      "authors": [
-        "Tania Murray Li"
-      ],
-      "global_citation_count": 448,
-      "cited_by_focal_researchers": 1
-    },
-    {
-      "openalex_id": "https://openalex.org/W2107040035",
-      "doi": "https://doi.org/10.1080/17450101.2012.718935",
-      "title": "The Enchantments of Infrastructure",
-      "year": 2012,
-      "authors": [
-        "Penny Harvey",
-        "Hannah Knox"
-      ],
-      "global_citation_count": 548,
-      "cited_by_focal_researchers": 1
-    },
-    {
-      "openalex_id": "https://openalex.org/W2107659839",
-      "doi": "https://doi.org/10.1080/00664670903278387",
-      "title": "Introduction: Spiritual Landscapes of Southeast Asia",
-      "year": 2009,
-      "authors": [
-        "Catherine Allerton"
-      ],
-      "global_citation_count": 75,
       "cited_by_focal_researchers": 1
     }
   ],
