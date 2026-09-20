@@ -1,0 +1,60 @@
+# ScholarFocus / litreview configuration
+# Copy to config.yaml and fill in. config.yaml is gitignored — never commit it.
+
+apis:
+  openalex:
+    email: your-email@example.com     # polite pool
+    api_key: null                     # https://openalex.org/settings/api (free, ~30s)
+                                      # Raises the daily budget from ~1000 to ~10000 credits.
+
+  semantic_scholar:
+    api_key: null                     # https://api.semanticscholar.org/ (optional, 10x rate limit)
+    enabled: false                    # off by default; OpenAlex covers ~92% of abstracts
+
+  crossref:
+    email: your-email@example.com     # polite pool
+
+  core:
+    api_key: null                     # https://core.ac.uk/services/api
+                                      # Raises the rate limit from 10/min to 150/min.
+
+  unpaywall:
+    email: your-email@example.com     # required by the API
+
+  openaire: {}                        # no credentials needed
+
+zotero:
+  enabled: true
+  base_url: http://localhost:23119/api/users/0
+  # Requires Zotero desktop running, with
+  # Settings -> Advanced -> "Allow other applications on this computer to communicate with Zotero"
+
+jstor:
+  source_path: ~/data/jstor/jstor_metadata_2026-09-19.jsonl.gz
+  db_path: ~/.local/share/scholarlib/jstor.sqlite
+  disciplines: null                   # null = index all disciplines
+  keep_reviews: false                 # book reviews are ~80% of anthropology records, ~90% titleless
+
+cache:
+  path: ~/.cache/scholarlib/http.sqlite
+  enabled: true
+
+budget:
+  openalex:
+    daily_cap: null                   # null = auto (900 without an api_key, 9000 with one)
+
+analysis:
+  max_works_per_researcher: 100
+  max_references_per_work: 50
+  max_cited_works_fetched: 200
+  max_singleton_topups: 50
+  top_n_partners: 15
+  top_n_cited_works: 20
+  top_n_keywords: 25
+  min_collaboration_count: 2
+  concept_min_level: 1
+  concept_max_level: 4
+
+disambiguation:
+  auto_accept: 0.75                   # accept top candidate at/above this score
+  margin: 0.15                        # refuse to guess if top two are within this

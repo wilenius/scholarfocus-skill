@@ -1,0 +1,40 @@
+# Secrets — never commit
+config.yaml
+*.local.yaml
+.env
+.env.*
+
+# Large source data — keep OUT of the repo entirely (see README)
+*.jsonl
+*.jsonl.gz
+jstor_metadata_*.gz
+data/
+
+# Built artefacts
+*.sqlite
+*.sqlite3
+*.db
+*-wal
+*-shm
+.cache/
+out/
+build/
+dist/
+*.egg-info/
+
+# Scratch / logs
+first_tests.txt
+*.log
+scratch/
+
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ruff_cache/
+
+# Editor / agent local state
+.claude/settings.local.json
+.DS_Store

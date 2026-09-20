@@ -1,0 +1,407 @@
+{
+  "researchers": [
+    {
+      "profile": {
+        "id": "https://openalex.org/A5022816286",
+        "name": "Heikki Wilenius",
+        "orcid": "https://orcid.org/0000-0003-4601-2392",
+        "works_count": 18,
+        "cited_by_count": 11,
+        "h_index": 2,
+        "i10_index": 0,
+        "institutions": [
+          "University of Helsinki"
+        ]
+      },
+      "keywords": [
+        {
+          "keyword": "Social Sciences",
+          "score": 6.152,
+          "work_count": 25,
+          "source": "topic"
+        },
+        {
+          "keyword": "Asian Studies and History",
+          "score": 4.072,
+          "work_count": 5,
+          "source": "topic"
+        },
+        {
+          "keyword": "Sociology and Political Science",
+          "score": 3.13,
+          "work_count": 10,
+          "source": "topic"
+        },
+        {
+          "keyword": "Anthropology",
+          "score": 3.056,
+          "work_count": 9,
+          "source": "concept"
+        },
+        {
+          "keyword": "Arts and Humanities",
+          "score": 2.92,
+          "work_count": 7,
+          "source": "topic"
+        },
+        {
+          "keyword": "Politics",
+          "score": 2.82,
+          "work_count": 6,
+          "source": "concept"
+        },
+        {
+          "keyword": "Southeast Asian Sociopolitical Studies",
+          "score": 1.925,
+          "work_count": 3,
+          "source": "topic"
+        },
+        {
+          "keyword": "Media studies",
+          "score": 1.664,
+          "work_count": 4,
+          "source": "concept"
+        },
+        {
+          "keyword": "Work (physics)",
+          "score": 1.421,
+          "work_count": 3,
+          "source": "concept"
+        },
+        {
+          "keyword": "Political Science and International Relations",
+          "score": 1.365,
+          "work_count": 6,
+          "source": "topic"
+        },
+        {
+          "keyword": "Representation (politics)",
+          "score": 1.319,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Music",
+          "score": 1.267,
+          "work_count": 3,
+          "source": "topic"
+        },
+        {
+          "keyword": "Epistemology",
+          "score": 1.237,
+          "work_count": 3,
+          "source": "concept"
+        },
+        {
+          "keyword": "Situated",
+          "score": 1.232,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Anthropological Studies and Insights",
+          "score": 1.209,
+          "work_count": 3,
+          "source": "topic"
+        },
+        {
+          "keyword": "Environmental ethics",
+          "score": 1.193,
+          "work_count": 3,
+          "source": "concept"
+        },
+        {
+          "keyword": "Conversation",
+          "score": 1.165,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Narrative",
+          "score": 1.088,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Anthropology: Ethics, History, Culture",
+          "score": 1.079,
+          "work_count": 2,
+          "source": "topic"
+        },
+        {
+          "keyword": "Agency (philosophy)",
+          "score": 0.966,
+          "work_count": 2,
+          "source": "concept"
+        },
+        {
+          "keyword": "Critical Race Theory in Education",
+          "score": 0.937,
+          "work_count": 1,
+          "source": "topic"
+        },
+        {
+          "keyword": "Private Equity and Venture Capital",
+          "score": 0.927,
+          "work_count": 1,
+          "source": "topic"
+        },
+        {
+          "keyword": "Indigenous Studies and Ecology",
+          "score": 0.925,
+          "work_count": 3,
+          "source": "topic"
+        },
+        {
+          "keyword": "Cultural Identity and Representation",
+          "score": 0.919,
+          "work_count": 1,
+          "source": "topic"
+        },
+        {
+          "keyword": "Modernity",
+          "score": 0.911,
+          "work_count": 1,
+          "source": "concept"
+        }
+      ],
+      "partners": [
+        {
+          "id": "https://openalex.org/A5037591905",
+          "name": "T Tammisto",
+          "institutions": [
+            "University of Helsinki"
+          ],
+          "collaboration_count": 7
+        }
+      ]
+    }
+  ],
+  "cited_works": [
+    {
+      "openalex_id": "https://openalex.org/W436970179",
+      "doi": null,
+      "title": "Returns to the field : multitemporal research and contemporary anthropology",
+      "year": 2012,
+      "authors": [
+        "Signe Howell",
+        "Aud Talle",
+        "Bruce M. Knauft"
+      ],
+      "global_citation_count": 56,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W607804903",
+      "doi": "https://doi.org/10.1163/9789004286818",
+      "title": "Der Totenkult der Ngadju Dajak in Süd-Borneo (2 vols.)",
+      "year": 1966,
+      "authors": [
+        "Hans Schärer"
+      ],
+      "global_citation_count": 8,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W639061686",
+      "doi": null,
+      "title": "The seen and the unseen : shamanism, mediumship and possession in Borneo",
+      "year": 1993,
+      "authors": [
+        "Robert L. Winzeler"
+      ],
+      "global_citation_count": 20,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1496889847",
+      "doi": "https://doi.org/10.1111/apv.12088",
+      "title": "Climate change disputes and justice in C entral K alimantan, I ndonesia",
+      "year": 2015,
+      "authors": [
+        "Anu Lounela"
+      ],
+      "global_citation_count": 34,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1530800747",
+      "doi": "https://doi.org/10.4324/9781315773803",
+      "title": "Democracy, Corruption and the Politics of Spirits in Contemporary Indonesia",
+      "year": 2014,
+      "authors": [
+        "Nils Bubandt"
+      ],
+      "global_citation_count": 72,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1554302897",
+      "doi": "https://doi.org/10.1111/j.1467-9655.2010.01658.x",
+      "title": "Haunting Malayness: the multicultural uncanny in a new Indonesian province",
+      "year": 2010,
+      "authors": [
+        "Nicholas J. Long"
+      ],
+      "global_citation_count": 13,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1603473400",
+      "doi": "https://doi.org/10.4324/9780203123126",
+      "title": "Southeast Asian Perspectives on Power",
+      "year": 2012,
+      "authors": [],
+      "global_citation_count": 31,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1609137574",
+      "doi": "https://doi.org/10.1525/cag.1998.20.1.41",
+      "title": "Seeing Like a State: How Certain Schemes to Improve the Human Condition Have Failed",
+      "year": 1998,
+      "authors": [
+        "Dion Dennis"
+      ],
+      "global_citation_count": 597,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1979443573",
+      "doi": "https://doi.org/10.2307/1385555",
+      "title": "The Devil and Commodity Fetishism in South America",
+      "year": 1981,
+      "authors": [
+        "William Madsen",
+        "Michael Taussig"
+      ],
+      "global_citation_count": 973,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1992318433",
+      "doi": "https://doi.org/10.1086/ahr.111.3.692",
+      "title": "Modernity and Enchantment: A Historiographic Review",
+      "year": 2006,
+      "authors": [
+        "Michael Saler"
+      ],
+      "global_citation_count": 227,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W1998166548",
+      "doi": "https://doi.org/10.2307/1178666",
+      "title": "In the Realm of the Diamond Queen: Marginality in an Out-of-the-Way Place",
+      "year": 1994,
+      "authors": [
+        "Robert Wessing",
+        "Anna Tsing"
+      ],
+      "global_citation_count": 640,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2003598415",
+      "doi": "https://doi.org/10.1525/eth.1984.12.2.02a00050",
+      "title": "Horrific Comedy: Cultural Resistance and the Hauka Movement in Niger",
+      "year": 1984,
+      "authors": [
+        "Paul Stoller"
+      ],
+      "global_citation_count": 105,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2009963402",
+      "doi": "https://doi.org/10.1515/9780804788090",
+      "title": "Dialectic of Enlightenment",
+      "year": 2020,
+      "authors": [
+        "Max Horkheimer",
+        "Theodor W. Adorno"
+      ],
+      "global_citation_count": 5788,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2026321929",
+      "doi": "https://doi.org/10.1525/can.1999.14.3.295",
+      "title": "Compromising Power:Development,Culture, and Rule in Indonesia",
+      "year": 1999,
+      "authors": [
+        "Tania Murray Li"
+      ],
+      "global_citation_count": 492,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2046436466",
+      "doi": "https://doi.org/10.1177/1466138109339044",
+      "title": "Interview with an ancestor",
+      "year": 2009,
+      "authors": [
+        "Nils Bubandt"
+      ],
+      "global_citation_count": 40,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2057512126",
+      "doi": "https://doi.org/10.1080/00141844.2014.986152",
+      "title": "Gifting, Dam(n)ing and the Ambiguation of Development in Malaysian Borneo",
+      "year": 2014,
+      "authors": [
+        "Liana Chua"
+      ],
+      "global_citation_count": 14,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2069843238",
+      "doi": "https://doi.org/10.1163/22134379-90003694",
+      "title": "Dislodged tales: Javanese goddesses and spirits on the silver screen",
+      "year": 2008,
+      "authors": [
+        "Robert Wessing"
+      ],
+      "global_citation_count": 4,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2073020677",
+      "doi": "https://doi.org/10.1525/aa.2005.107.3.383",
+      "title": "Beyond “the State” and Failed Schemes",
+      "year": 2005,
+      "authors": [
+        "Tania Murray Li"
+      ],
+      "global_citation_count": 448,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2107040035",
+      "doi": "https://doi.org/10.1080/17450101.2012.718935",
+      "title": "The Enchantments of Infrastructure",
+      "year": 2012,
+      "authors": [
+        "Penny Harvey",
+        "Hannah Knox"
+      ],
+      "global_citation_count": 548,
+      "cited_by_focal_researchers": 1
+    },
+    {
+      "openalex_id": "https://openalex.org/W2107659839",
+      "doi": "https://doi.org/10.1080/00664670903278387",
+      "title": "Introduction: Spiritual Landscapes of Southeast Asia",
+      "year": 2009,
+      "authors": [
+        "Catherine Allerton"
+      ],
+      "global_citation_count": 75,
+      "cited_by_focal_researchers": 1
+    }
+  ],
+  "network_summary": {}
+}
