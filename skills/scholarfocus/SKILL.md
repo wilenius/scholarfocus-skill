@@ -1,0 +1,78 @@
+---
+name: scholarfocus
+description: Profile one or more named researchers (people) by name or ORCID ID. Resolves the person in OpenAlex, fetches their works, and outputs ranked research interests, their main co-authors, and the external works they cite most. Use when the user names a specific scholar and asks what they work on, who they collaborate with, what they cite, or how the networks of two named scholars compare. Do NOT use for topic-based literature searches or literature reviews — use the litreview skill for those.
+license: MIT
+compatibility: Requires Python 3.11+, internet access, and the scholarlib package from this repo (`pip install -e <repo root>`, or run from the repo root). A config.yaml at the repo root supplies API emails/keys. See references/REFERENCE.md.
+metadata:
+  author: hwileniu
+  version: "2.0"
+---
+
+# ScholarFocus
+
+Build structured intelligence profiles of **researchers** from open bibliographic APIs.
+
+For reviewing the literature on a **topic**, use the `litreview` skill instead.
+
+## When to use
+
+- "Profile [researcher name]" / "What does [researcher] work on?"
+- "Who does [researcher] collaborate with?"
+- "What works does [researcher] cite most?"
+- "Compare the research interests of [A] and [B]"
+
+## How to run
+
+Run from the repo root:
+
+```bash
+# By name
+python -m scholarlib.cli.scholarfocus --researchers "Jane Doe"
+
+# By ORCID (always preferred — avoids name ambiguity entirely)
+python -m scholarlib.cli.scholarfocus --researchers "0000-0002-1234-5678"
+
+# Multiple researchers (enables cross-network analysis)
+python -m scholarlib.cli.scholarfocus \
+    --researchers "Alice Smith" "0000-0003-9876-5432" --output json
+
+# Disambiguation hints, when a name is common
+python -m scholarlib.cli.scholarfocus --researchers "T Tammisto" \
+    --field Anthropology --institution "Helsinki"
+```
+
+**Flags:** `--researchers` (required), `--config`, `--output markdown|json`,
+`--log-level`, plus `--author-id`, `--field`, `--institution`, `--active-years`
+for disambiguation.
+
+## Output
+
+| Section | Content |
+|---------|---------|
+| Researcher profile | Name, ORCID, institution, works count, citation count, h-index |
+| Research interests | Ranked keywords/topics from OpenAlex topics + concepts |
+| Research partners | Co-authors ranked by collaboration frequency |
+| Cited external works | Most-cited non-self works across the researcher's corpus |
+| Network summary | Shared interests and collaborators (multi-researcher only) |
+
+## Exit codes
+
+| Code | Meaning | What to do |
+|---|---|---|
+| 0 | success | — |
+| 1 | no results / unexpected error | report the stderr message |
+| 2 | OpenAlex daily credit budget exhausted | partial results were still written to stdout; retry tomorrow or add an API key |
+| 3 | config error | fix `config.yaml` |
+| 4 | **ambiguous author** | stdout holds `{"status":"ambiguous","candidates":[…]}` — show the candidates to the user and re-run with `--author-id` |
+| 5 | JSTOR index missing | build it, or pass `--no-jstor` |
+
+## Fallback procedures
+
+1. **Ambiguous name (exit 4)** → present the candidate list with institution and top
+   topics, ask which is meant, re-run with `--author-id`. Never silently pick one.
+2. **Not found** → ask the user to confirm spelling or supply an ORCID (https://orcid.org).
+3. **Enrich via the Zotero skill** if available: pull the publication list, feed DOIs to CrossRef.
+4. **Enrich via web search**: Google Scholar, ResearchGate, or an institutional page.
+5. **Partial results are preferable to failure** — report what was found, with uncertainty markers.
+
+See [references/REFERENCE.md](references/REFERENCE.md) for the full JSON schema and config options.
