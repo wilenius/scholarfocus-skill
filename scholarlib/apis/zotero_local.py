@@ -151,6 +151,6 @@ class ZoteroLookup:
         for dy in range(-year_slack, year_slack + 1):
             y = (rec.year + dy) if rec.year else None
             for cand in self.by_block.get((rec.first_surname, y), []):
-                if dedup.title_similarity(rec.title, cand.title) >= threshold:
+                if dedup.best_title_similarity(rec.title, cand.title) >= threshold:
                     return cand
         return None

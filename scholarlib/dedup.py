@@ -34,6 +34,8 @@ _DOI_PREFIXES = (
 _PARTICLES = {"van", "von", "de", "del", "della", "der", "den", "da", "di",
               "du", "la", "le", "ten", "ter", "bin", "ibn", "al"}
 
+MIN_TITLE_TOKENS = 3
+
 _SUBTITLE_SPLIT = re.compile(r"\s*[:–—]\s|\s+-\s+")
 
 
@@ -123,7 +125,29 @@ def title_similarity(a: Optional[str], b: Optional[str]) -> float:
     return _similarity(na, nb)
 
 
-MIN_TITLE_TOKENS = 3
+def best_title_similarity(a: Optional[str], b: Optional[str]) -> float:
+    """Compare full titles and main titles, taking the better score.
+
+    Sources disagree constantly about subtitles: Zotero may hold
+    "The mushroom at the end of the world: on the possibility of life in
+    capitalist ruins" where a citation gives only "The Mushroom at the End of
+    the World". Full-string similarity there is 0.61, which fails any sane
+    threshold, while the main titles are identical.
+
+    Only used inside a (surname, year) block, so the looser main-title
+    comparison cannot pull in unrelated works.
+    """
+    full = title_similarity(a, b)
+    ma, mb = title_main(a), title_main(b)
+    if not ma or not mb:
+        return full
+    # A main title too short to be evidence must not carry a match on its own.
+    if min(len(ma.split()), len(mb.split())) < MIN_TITLE_TOKENS:
+        return full
+    return max(full, _similarity(ma, mb) if ma != mb else 1.0)
+
+
+
 
 
 def titles_comparable(title: Optional[str]) -> bool:

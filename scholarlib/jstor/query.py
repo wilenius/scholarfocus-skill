@@ -182,7 +182,7 @@ class JstorIndex:
             ).fetchall()
             best, best_score = None, 0.0
             for r in rows:
-                s = dedup.title_similarity(rec.title, r["title"])
+                s = dedup.best_title_similarity(rec.title, r["title"])
                 if s > best_score:
                     best, best_score = r, s
             if best is not None and best_score >= threshold:
@@ -192,7 +192,7 @@ class JstorIndex:
         cands = self.search(dedup.title_main(rec.title) or rec.title, limit=20)
         best, best_score = None, 0.0
         for c in cands:
-            s = dedup.title_similarity(rec.title, c.title)
+            s = dedup.best_title_similarity(rec.title, c.title)
             if rec.first_surname and c.first_surname and rec.first_surname != c.first_surname:
                 s *= 0.7
             if rec.year and c.year and abs(rec.year - c.year) > year_slack:

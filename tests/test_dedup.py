@@ -123,3 +123,33 @@ class TestDedup:
         assert stats["input"] == 3
         assert stats["output"] == 2
         assert stats["duplicates_removed"] == 1
+
+
+class TestSubtitleMatching:
+    """Sources disagree about subtitles; matching must survive that.
+
+    Regression: a Zotero library holding the full title of Tsing's 2015 book
+    failed to match a citation giving only the main title. Full-string
+    similarity is 0.61 there, below any sane threshold.
+    """
+
+    FULL = ("The mushroom at the end of the world: "
+            "on the possibility of life in capitalist ruins")
+    SHORT = "The Mushroom at the End of the World"
+
+    def test_full_string_similarity_is_insufficient(self):
+        assert dedup.title_similarity(self.FULL, self.SHORT) < 0.93
+
+    def test_main_title_comparison_rescues_it(self):
+        assert dedup.best_title_similarity(self.FULL, self.SHORT) == 1.0
+
+    def test_generic_main_titles_do_not_match_alone(self):
+        """'Introduction: X' vs 'Introduction: Y' must not collapse."""
+        assert dedup.best_title_similarity(
+            "Introduction: Multispecies Worlds", "Introduction: Something Else"
+        ) < 0.93
+
+    def test_short_main_titles_fall_back_to_full_comparison(self):
+        assert dedup.best_title_similarity(
+            "Cannibalism: A History", "Cannibalism: An Ethnography"
+        ) < 0.93
