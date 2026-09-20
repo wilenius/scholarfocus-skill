@@ -1,94 +1,93 @@
-"""
-CrossRef API client — tertiary data source.
+"""CrossRef client. Free, polite pool via a mailto in the User-Agent."""
 
-Provides: DOI metadata, reference lists, journal info, publisher data.
-No API key needed; email in polite pool gives higher rate limits.
-Docs: https://api.crossref.org/swagger-ui/index.html
-"""
+from __future__ import annotations
 
-import time
 import logging
 from typing import Optional
-import requests
+
+from scholarlib.http.base import BaseClient
 
 logger = logging.getLogger(__name__)
 
 BASE_URL = "https://api.crossref.org"
 
+# Verified against the live API. `reference-count` is NOT a valid select field
+# and returns HTTP 400 select-not-available -- that was the long-standing bug.
+# The valid spellings are `references-count` and `is-referenced-by-count`.
+SAFE_SELECT = (
+    "DOI,title,author,issued,type,container-title,"
+    "references-count,is-referenced-by-count,abstract"
+)
 
-class CrossRefClient:
-    def __init__(self, email: Optional[str] = None):
-        self.session = requests.Session()
-        ua = "ScholarFocus/1.0"
-        if email:
-            ua += f" (mailto:{email})"
-        self.session.headers.update({"User-Agent": ua})
 
-    def _get(self, url: str, params: Optional[dict] = None, retries: int = 3) -> Optional[dict]:
-        for attempt in range(retries):
-            try:
-                resp = self.session.get(url, params=params, timeout=30)
-                if resp.status_code == 200:
-                    return resp.json()
-                if resp.status_code == 429:
-                    wait = 3 * (attempt + 1)
-                    logger.warning("CrossRef rate limit, waiting %ds", wait)
-                    time.sleep(wait)
-                    continue
-                if resp.status_code == 404:
-                    return None
-                logger.warning("CrossRef HTTP %s for %s", resp.status_code, url)
-                return None
-            except requests.RequestException as e:
-                logger.warning("CrossRef request error: %s", e)
-                if attempt < retries - 1:
-                    time.sleep(1)
-        return None
+class CrossRefClient(BaseClient):
+    name = "crossref"
+    base_url = BASE_URL
+
+    def __init__(self, email: Optional[str] = None, **kw):
+        super().__init__(contact_email=email, **kw)
+        self.email = email
+
+    def _auth_params(self) -> dict:
+        return {"mailto": self.email} if self.email else {}
 
     def get_work_by_doi(self, doi: str) -> Optional[dict]:
-        """Retrieve full CrossRef metadata for a DOI."""
-        doi = doi.replace("https://doi.org/", "").strip()
-        data = self._get(f"{BASE_URL}/works/{doi}")
-        time.sleep(0.12)
-        return data.get("message") if data else None
+        d = str(doi).replace("https://doi.org/", "").strip()
+        data = self.get(f"/works/{d}")
+        return (data or {}).get("message")
 
-    def search_works_by_author(self, name: str, rows: int = 50) -> list[dict]:
-        """Search CrossRef works by author name."""
-        data = self._get(
-            f"{BASE_URL}/works",
-            {"query.author": name, "rows": rows, "select": "DOI,title,author,published,reference-count"},
-        )
-        time.sleep(0.12)
-        return data.get("message", {}).get("items", []) if data else []
+    def search_works_by_author(self, name: str, rows: int = 50,
+                               *, select: Optional[str] = None) -> list[dict]:
+        params: dict = {"query.author": name, "rows": min(rows, 1000)}
+        if select:
+            params["select"] = select
+        data = self.get("/works", params)
+        return (data or {}).get("message", {}).get("items", [])
+
+    def search_works(self, query: str, rows: int = 50,
+                     from_year: Optional[int] = None) -> list[dict]:
+        params: dict = {"query.bibliographic": query, "rows": min(rows, 1000)}
+        if from_year:
+            params["filter"] = f"from-pub-date:{from_year}-01-01"
+        data = self.get("/works", params)
+        return (data or {}).get("message", {}).get("items", [])
 
     def get_references(self, doi: str) -> list[dict]:
-        """
-        Get the reference list for a DOI (works that this paper cites).
-        CrossRef only exposes references for participating publishers.
-        Returns list of reference dicts with keys: DOI, unstructured, author, title, year.
-        """
+        """Only publishers who deposit references expose them."""
         work = self.get_work_by_doi(doi)
-        if not work:
-            return []
-        return work.get("reference", [])
+        return (work or {}).get("reference", []) or []
+
+    def get_abstract(self, doi: str) -> Optional[str]:
+        """CrossRef abstracts are JATS-wrapped; strip the tags."""
+        import re
+
+        work = self.get_work_by_doi(doi)
+        raw = (work or {}).get("abstract")
+        if not raw:
+            return None
+        text = re.sub(r"<[^>]+>", " ", raw)
+        text = re.sub(r"\s+", " ", text).strip()
+        return text or None
 
     def enrich_doi_metadata(self, doi: str) -> Optional[dict]:
-        """Return a simplified metadata dict for a DOI."""
+        """Normalise a CrossRef record into a flat shape."""
         work = self.get_work_by_doi(doi)
         if not work:
             return None
         authors = []
-        for a in work.get("author", []):
-            name_parts = [a.get("given", ""), a.get("family", "")]
-            authors.append(" ".join(p for p in name_parts if p))
-        date_parts = (work.get("published", {}) or {}).get("date-parts", [[]])
-        year = date_parts[0][0] if date_parts and date_parts[0] else None
+        for a in work.get("author", []) or []:
+            given, family = a.get("given"), a.get("family")
+            authors.append(" ".join(x for x in (given, family) if x) or a.get("name", ""))
+        issued = ((work.get("issued") or {}).get("date-parts") or [[None]])[0]
+        titles = work.get("title") or []
+        containers = work.get("container-title") or []
         return {
-            "doi": doi,
-            "title": " ".join(work.get("title", [])),
-            "authors": authors,
-            "year": year,
-            "journal": work.get("container-title", [None])[0],
-            "reference_count": work.get("reference-count", 0),
-            "is_referenced_by_count": work.get("is-referenced-by-count", 0),
+            "doi": work.get("DOI"),
+            "title": titles[0] if titles else None,
+            "authors": [a for a in authors if a],
+            "year": issued[0] if issued else None,
+            "journal": containers[0] if containers else None,
+            "type": work.get("type"),
+            "reference_count": work.get("references-count"),
+            "is_referenced_by_count": work.get("is-referenced-by-count"),
         }
