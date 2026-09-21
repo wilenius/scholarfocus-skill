@@ -19,6 +19,9 @@ from scholarlib.records import Record
 
 logger = logging.getLogger(__name__)
 
+# Titles longer than this skip the OR fallback; see JstorIndex.search.
+OR_FALLBACK_MAX_TOKENS = 6
+
 _TYPE_MAP = {
     "article": "article",
     "book": "book",
@@ -124,17 +127,35 @@ class JstorIndex:
         to_year: Optional[int] = None,
         languages: Optional[Iterable[str]] = None,
         limit: int = 50,
+        or_fallback: bool = True,
+        or_fallback_max_tokens: int = OR_FALLBACK_MAX_TOKENS,
     ) -> list[Record]:
-        if not _fts_tokens(text):
+        """The OR fallback is capped by title length, because its cost and its
+        value pull in opposite directions as titles get longer.
+
+        Measured against this 6.6M-row index: a 2-3 token title ORs in 3-275ms,
+        a 10-12 token one in 2-3s, since OR-ing many common words matches and
+        bm25-ranks a large share of the table. Meanwhile a short title failing
+        the AND pass usually means one word differs and OR rescues a real match
+        ("algorithms as culture" scores 0.92 only via OR); a long title failing
+        AND usually means the work is genuinely absent, and OR returns noise
+        that the caller's similarity threshold discards anyway.
+        """
+        toks = _fts_tokens(text)
+        if not toks:
             return []
         rows = self._search_raw(text, "AND", disciplines, types, from_year,
                                 to_year, languages, limit)
-        if not rows and len(_fts_tokens(text)) > 1:
-            # bm25 still ranks records matching more terms highest, so the
-            # looser pass degrades relevance rather than precision.
-            logger.debug("No AND match for %r; retrying with OR", text)
-            rows = self._search_raw(text, "OR", disciplines, types, from_year,
-                                    to_year, languages, limit)
+        if not rows and or_fallback and len(toks) > 1:
+            if len(toks) > or_fallback_max_tokens:
+                logger.debug("Skipping OR fallback for %d-token title %r",
+                             len(toks), text)
+            else:
+                # bm25 still ranks records matching more terms highest, so the
+                # looser pass degrades relevance rather than precision.
+                logger.debug("No AND match for %r; retrying with OR", text)
+                rows = self._search_raw(text, "OR", disciplines, types,
+                                        from_year, to_year, languages, limit)
         return [self._row_to_record(r) for r in rows]
 
     def _search_raw(self, text, operator, disciplines, types, from_year,
