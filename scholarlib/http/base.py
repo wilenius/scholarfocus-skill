@@ -9,13 +9,14 @@ from typing import Any, Iterator, Optional
 
 import requests
 
+from scholarlib import __version__
 from scholarlib.http.budget import BudgetExceeded, CreditLedger
 from scholarlib.http.cache import HttpCache, cache_key
 from scholarlib.http.policy import RetryPolicy, policy_for
 
 logger = logging.getLogger(__name__)
 
-USER_AGENT = "scholarlib/0.2 (+https://github.com/hwileniu/scholarfocus-skill)"
+USER_AGENT = f"scholarlib/{__version__} (+https://github.com/wilenius/scholarfocus-skill)"
 
 
 class BaseClient:

@@ -2,10 +2,14 @@
 
 Reads the local Zotero HTTP API at `http://localhost:23119/api/users/0/`.
 
-**Requires**: Zotero desktop running, with *Settings → Advanced → "Allow other
-applications on this computer to communicate with Zotero"* enabled. If it is not
-reachable, litreview logs one warning and continues — a closed Zotero never
-fails a run.
+**Off by default.** Most installations have no Zotero, so `zotero.enabled` is
+`false` in the config and `--zotero` defaults to `off`. Turn both on once Zotero
+is installed — this integration is worth the setup, and the README explains why.
+
+**Requires**: the Zotero desktop app running, with *Settings → Advanced → "Allow
+other applications on this computer to communicate with Zotero"* enabled. If it
+is not reachable, litreview logs one warning and continues — a closed Zotero
+never fails a run.
 
 **The API is read-only.** Export writes a `.bib` file you import yourself; it
 cannot push items into Zotero.
@@ -14,13 +18,13 @@ cannot push items into Zotero.
 
 | `--zotero` | Effect |
 |---|---|
-| `mark` (default) | Flag results you already own; adds a small ranking bonus and a "N of these are in your library" line |
+| `mark` | Flag results you already own; adds a small ranking bonus and a "N of these are in your library" line |
 | `seed` | Read a collection, extract DOIs, resolve them through **free** OpenAlex singleton lookups — zero credits for a high-precision seed set |
 | `both` | Both |
-| `off` | Skip entirely |
+| `off` (default) | Skip entirely |
 
 ```bash
-python -m scholarlib.cli.litreview --query "plantation ecologies" \
+litreview --query "plantation ecologies" \
     --zotero both --seed-zotero-collection "Plantationocene"
 ```
 

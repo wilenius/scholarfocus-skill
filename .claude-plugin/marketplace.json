@@ -1,0 +1,14 @@
+{
+  "name": "wilenius-skills",
+  "owner": { "name": "Heikki Wilenius", "url": "https://github.com/wilenius" },
+  "description": "Research and bibliography skills for Claude Code.",
+  "plugins": [
+    {
+      "name": "scholarlib",
+      "source": "./",
+      "description": "Profile a named researcher (scholarfocus) or survey the literature on a topic (litreview), over OpenAlex, ORCID, CrossRef, Unpaywall, OpenAIRE and an optional local JSTOR index.",
+      "license": "MIT",
+      "keywords": ["research", "bibliography", "openalex", "orcid", "literature-review"]
+    }
+  ]
+}

@@ -17,17 +17,31 @@ precisely where OpenAlex is weak:
   Italian, 149k Spanish, 71k Hebrew.
 - Year range 1665–2027.
 
+## Getting the dump
+
+JSTOR distributes its metadata to subscribing institutions through
+<https://www.jstor.org/ta-support/metadata>. **You need an institutional account
+with JSTOR access**; there is no public download. The dump arrives as a gzipped
+JSONL file of roughly 1.3 GB.
+
+Keep it outside the working tree — `~/data/jstor/` by default — and point
+`jstor.source_path` in your config at it. The file is gitignored by pattern, but
+it has no business in a repository regardless.
+
+This index is genuinely optional. Without it both skills still work; litreview
+simply sees fewer books, which is what `--no-jstor` announces.
+
 ## Building it
 
 ```bash
-python -m scholarlib.cli.jstor_index build --all-disciplines
+jstor-index build --all-disciplines
 ```
 
 Roughly 8 minutes and **6.7 GB** on disk for every discipline. Narrow it if that
 is too much:
 
 ```bash
-python -m scholarlib.cli.jstor_index build --disciplines Anthropology,Sociology,History
+jstor-index build --disciplines Anthropology,Sociology,History
 ```
 
 The build is re-runnable: an unchanged source is a no-op, an interrupted run
@@ -48,10 +62,10 @@ swamp full-text ranking, so they are off by default.
 ## Querying it
 
 ```bash
-python -m scholarlib.cli.jstor_index stats
-python -m scholarlib.cli.jstor_index search --text "multispecies ethnography" \
+jstor-index stats
+jstor-index search --text "multispecies ethnography" \
     --disciplines Anthropology --limit 10
-python -m scholarlib.cli.jstor_index match --title "..." --author Tsing --year 2015
+jstor-index match --title "..." --author Tsing --year 2015
 ```
 
 Searches return in well under a second.

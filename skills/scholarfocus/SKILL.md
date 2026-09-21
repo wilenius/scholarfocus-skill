@@ -2,10 +2,9 @@
 name: scholarfocus
 description: Profile one or more named researchers (people) by name or ORCID ID. Resolves the person in OpenAlex and ORCID, fetches their works, and outputs ranked research interests, their main co-authors, and the external works they cite most. Use when the user names a specific scholar and asks what they work on, who they collaborate with, what they cite, or how the networks of two named scholars compare. Do NOT use for topic-based literature searches or literature reviews — use the litreview skill for those.
 license: MIT
-compatibility: Requires Python 3.11+, internet access, and the scholarlib package from this repo (`pip install -e <repo root>`, or run from the repo root). A config.yaml at the repo root supplies API emails/keys. See references/REFERENCE.md.
+compatibility: Requires Python 3.11+ and internet access. Install the `scholarlib` package, which provides this skill's command: `uv tool install scholarlib` or `pip install scholarlib`. API emails and keys live in `~/.config/scholarlib/config.yaml`; create it with `scholarfocus --init-config`. See references/REFERENCE.md.
 metadata:
-  author: hwileniu
-  version: "2.0"
+  author: wilenius
 ---
 
 # ScholarFocus
@@ -21,23 +20,30 @@ For reviewing the literature on a **topic**, use the `litreview` skill instead.
 - "What works does [researcher] cite most?"
 - "Compare the research interests of [A] and [B]"
 
+## Setup check
+
+Run `scholarfocus --version` first. If the command is not found, install it with
+`uv tool install scholarlib` (or `pip install scholarlib`) and try again. If a run
+warns that no config file was found, `scholarfocus --init-config` writes a template
+to `~/.config/scholarlib/config.yaml`; the tool still works without one, but on a
+much smaller daily API budget.
+
 ## How to run
 
-Run from the repo root:
+The command works from any directory.
 
 ```bash
 # By name
-python -m scholarlib.cli.scholarfocus --researchers "Jane Doe"
+scholarfocus --researchers "Jane Doe"
 
 # By ORCID (always preferred — avoids name ambiguity entirely)
-python -m scholarlib.cli.scholarfocus --researchers "0000-0002-1234-5678"
+scholarfocus --researchers "0000-0002-1234-5678"
 
 # Multiple researchers (enables cross-network analysis)
-python -m scholarlib.cli.scholarfocus \
-    --researchers "Alice Smith" "0000-0003-9876-5432" --output json
+scholarfocus --researchers "Alice Smith" "0000-0003-9876-5432" --output json
 
 # Disambiguation hints, when a name is common
-python -m scholarlib.cli.scholarfocus --researchers "T Tammisto" \
+scholarfocus --researchers "T Tammisto" \
     --field Anthropology --institution "Helsinki"
 ```
 
@@ -88,7 +94,6 @@ researcher's ORCID directly — it is always the most reliable input.
 | 2 | OpenAlex daily credit budget exhausted | partial results were still written to stdout; retry tomorrow or add an API key |
 | 3 | config error | fix `config.yaml` |
 | 4 | **ambiguous author** | stdout holds `{"status":"ambiguous","candidates":[…]}` — show the candidates to the user and re-run with `--author-id` |
-| 5 | JSTOR index missing | build it, or pass `--no-jstor` |
 
 ## Fallback procedures
 

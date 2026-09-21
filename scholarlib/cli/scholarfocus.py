@@ -23,7 +23,8 @@ from scholarlib.apis.openalex import WORK_FIELDS, OpenAlexClient
 from scholarlib.apis.semantic_scholar import SemanticScholarClient
 from scholarlib.apis.core_api import COREClient
 from scholarlib import dedup
-from scholarlib.config import ConfigError, load_config, warn_if_no_openalex_key
+from scholarlib import __version__
+from scholarlib.config import ConfigError, init_config, load_config, warn_if_no_openalex_key
 from scholarlib.dedup import warn_if_fuzzy_degraded
 from scholarlib.http.budget import BudgetExceeded
 from scholarlib.pipeline.context import build_context
@@ -573,11 +574,16 @@ def main():
         description="ScholarFocus — build a researcher network profile from open bibliographic APIs."
     )
     parser.add_argument(
-        "--researchers", nargs="+", required=True, metavar="NAME_OR_ORCID",
+        "--researchers", nargs="+", metavar="NAME_OR_ORCID",
         help="Researcher display name(s) or ORCID IDs (e.g. '0000-0002-1234-5678')",
     )
+    parser.add_argument("--version", action="version",
+                        version=f"scholarfocus (scholarlib {__version__})")
+    parser.add_argument("--init-config", action="store_true",
+                        help="Write a config template to ~/.config/scholarlib/config.yaml and exit")
     parser.add_argument("--config", metavar="PATH",
-                        help="Path to YAML config file (default: config.yaml at the repo root)")
+                        help="Path to YAML config file (default: ~/.config/scholarlib/config.yaml, "
+                             "or config.yaml beside the package)")
     parser.add_argument("--output", choices=["markdown", "json"], default="markdown",
                         help="Output format (default: markdown)")
     parser.add_argument("--log-level", choices=["DEBUG", "INFO", "WARNING", "ERROR"],
@@ -596,6 +602,17 @@ def main():
 
     args = parser.parse_args()
     logging.getLogger().setLevel(args.log_level)
+
+    if args.init_config:
+        try:
+            print(f"Wrote {init_config()} — fill in emails and keys before the first run.")
+        except ConfigError as e:
+            logger.error("%s", e)
+            sys.exit(EXIT_CONFIG)
+        sys.exit(EXIT_OK)
+
+    if not args.researchers:
+        parser.error("--researchers is required (or use --init-config)")
 
     active_years = None
     if args.active_years:

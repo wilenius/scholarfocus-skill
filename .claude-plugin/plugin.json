@@ -1,0 +1,12 @@
+{
+  "$schema": "https://json.schemastore.org/claude-code-plugin-manifest.json",
+  "name": "scholarlib",
+  "displayName": "ScholarFocus & litreview",
+  "version": "0.3.0",
+  "description": "Two research skills over open bibliographic APIs: profile a named researcher (scholarfocus), or survey the literature on a topic (litreview).",
+  "author": { "name": "Heikki Wilenius", "url": "https://github.com/wilenius" },
+  "homepage": "https://github.com/wilenius/scholarfocus-skill",
+  "repository": "https://github.com/wilenius/scholarfocus-skill",
+  "license": "MIT",
+  "keywords": ["research", "bibliography", "openalex", "orcid", "literature-review"]
+}

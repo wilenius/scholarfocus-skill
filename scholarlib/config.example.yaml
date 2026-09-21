@@ -1,5 +1,10 @@
 # ScholarFocus / litreview configuration
-# Copy to config.yaml and fill in. config.yaml is gitignored — never commit it.
+#
+# `scholarfocus --init-config` writes this template to
+# ~/.config/scholarlib/config.yaml. Fill in the emails and keys you have; every
+# field is optional, and the tools run without any of them on a smaller budget.
+# Working from a clone instead? A config.yaml at the repo root takes precedence,
+# and is gitignored — never commit it.
 
 apis:
   openalex:
@@ -26,10 +31,11 @@ apis:
   orcid: {}                           # public API, no credentials needed
 
 zotero:
-  enabled: true
+  enabled: false                      # set true once Zotero is installed and running
   base_url: http://localhost:23119/api/users/0
-  # Requires Zotero desktop running, with
+  # Requires the Zotero desktop app running, with
   # Settings -> Advanced -> "Allow other applications on this computer to communicate with Zotero"
+  # Strongly recommended: it marks which works you already own and supplies citekeys.
 
 jstor:
   source_path: ~/data/jstor/jstor_metadata_2026-09-19.jsonl.gz

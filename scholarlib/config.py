@@ -26,7 +26,7 @@ DEFAULT_CFG: dict = {
         "openaire": {},
     },
     "zotero": {
-        "enabled": True,
+        "enabled": False,
         "base_url": "http://localhost:23119/api/users/0",
     },
     "jstor": {
@@ -93,6 +93,30 @@ def find_config(explicit: Optional[str] = None) -> Optional[Path]:
     return xdg if xdg.exists() else None
 
 
+USER_CONFIG_PATH = Path("~/.config/scholarlib/config.yaml")
+
+TEMPLATE_PATH = Path(__file__).resolve().parent / "config.example.yaml"
+
+
+def user_config_path() -> Path:
+    """The per-user config location used when there is no repo to sit in."""
+    return USER_CONFIG_PATH.expanduser()
+
+
+def init_config(dest: Optional[str] = None, *, force: bool = False) -> Path:
+    """Write the bundled config template to `dest` (default: the XDG path)."""
+    target = Path(dest).expanduser() if dest else user_config_path()
+    if target.exists() and not force:
+        raise ConfigError(
+            f"{target} already exists — edit it, or pass a different path."
+        )
+    if not TEMPLATE_PATH.is_file():
+        raise ConfigError(f"Bundled config template is missing: {TEMPLATE_PATH}")
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text(TEMPLATE_PATH.read_text(encoding="utf-8"), encoding="utf-8")
+    return target
+
+
 def deep_merge(base: dict, override: dict) -> dict:
     """Recursively merge override into base (in place) and return base."""
     for k, v in override.items():
@@ -115,7 +139,11 @@ def load_config(path: Optional[str] = None) -> dict:
     cfg = deep_merge({}, DEFAULT_CFG)
     resolved = find_config(path)
     if resolved is None:
-        logger.warning("No config file found — using defaults (most APIs will be limited)")
+        logger.warning(
+            "No config file found — using defaults (most APIs will be limited). "
+            "Run `scholarfocus --init-config` to create %s",
+            user_config_path(),
+        )
         return cfg
     try:
         with open(resolved) as f:
@@ -135,7 +163,8 @@ def warn_if_no_openalex_key(cfg: dict) -> None:
         logger.warning(
             "OpenAlex running without an API key: ~1000 credits/day (~$0.10). "
             "A free key at https://openalex.org/settings/api raises this ~10x. "
-            "Put it in config.yaml under apis.openalex.api_key."
+            "Put it under apis.openalex.api_key in %s",
+            find_config() or user_config_path(),
         )
 
 

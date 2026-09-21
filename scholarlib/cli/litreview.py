@@ -12,7 +12,9 @@ import sys
 from pathlib import Path
 from typing import Optional
 
-from scholarlib.config import ConfigError, expand_path, load_config, warn_if_no_openalex_key
+from scholarlib import __version__
+from scholarlib.config import (ConfigError, expand_path, init_config, load_config,
+                               warn_if_no_openalex_key)
 from scholarlib.dedup import warn_if_fuzzy_degraded
 from scholarlib.http.budget import COSTS, BudgetExceeded
 from scholarlib.pipeline import abstracts, cluster, jstor_coverage, oa_links, rank, seed, snowball
@@ -258,7 +260,8 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--abstracts", choices=["none", "cheap", "full"], default="cheap")
     g.add_argument("--abstract-limit", type=int, default=200)
     g.add_argument("--no-unpaywall", action="store_true")
-    g.add_argument("--zotero", choices=["off", "mark", "seed", "both"], default="mark")
+    g.add_argument("--zotero", choices=["off", "mark", "seed", "both"], default="off",
+                   help="Zotero integration; needs zotero.enabled in config (default: off)")
     g.add_argument("--enable-s2ag", action="store_true")
 
     g = p.add_argument_group("output")
@@ -277,6 +280,10 @@ def build_parser() -> argparse.ArgumentParser:
     g.add_argument("--refresh", action="store_true")
 
     p.add_argument("--config")
+    p.add_argument("--version", action="version",
+                   version=f"litreview (scholarlib {__version__})")
+    p.add_argument("--init-config", action="store_true",
+                   help="Write a config template to ~/.config/scholarlib/config.yaml and exit")
     p.add_argument("--log-level", default="INFO",
                    choices=["DEBUG", "INFO", "WARNING", "ERROR"])
     return p
@@ -285,6 +292,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main() -> None:
     args = build_parser().parse_args()
     logging.getLogger().setLevel(getattr(logging, args.log_level))
+    if args.init_config:
+        try:
+            print(f"Wrote {init_config()} — fill in emails and keys before the first run.")
+        except ConfigError as e:
+            logger.error("%s", e)
+            sys.exit(EXIT_CONFIG)
+        sys.exit(EXIT_OK)
     if not (args.query or args.seed_doi or args.seed_openalex_id
             or args.seed_zotero_collection):
         logger.error("Nothing to search for: give --query, --seed-doi, "

@@ -2,10 +2,9 @@
 name: litreview
 description: Build a literature review on a topic or research question. Searches OpenAlex, snowballs citations forward and backward, checks a local JSTOR metadata index for books and book chapters that citation databases miss, assembles abstracts, adds open-access links, and outputs either a narrative/interpretive review (Annual Review style) or a systematic review with screening counts. Use when the user asks for a literature review, a state of the field, the key works on a topic, a reading list, or a bibliography on a subject. Do NOT use to profile a named individual researcher — use the scholarfocus skill for that.
 license: MIT
-compatibility: Requires Python 3.11+, internet access, and the scholarlib package from this repo (`pip install -e <repo root>`, or run from the repo root). A config.yaml at the repo root supplies API emails/keys. The JSTOR index is optional but recommended — see references/JSTOR.md.
+compatibility: Requires Python 3.11+ and internet access. Install the `scholarlib` package, which provides this skill's command: `uv tool install scholarlib` or `pip install scholarlib`. API emails and keys live in `~/.config/scholarlib/config.yaml`; create it with `litreview --init-config`. The local JSTOR index is optional and absent by default — see references/JSTOR.md.
 metadata:
-  author: hwileniu
-  version: "1.0"
+  author: wilenius
 ---
 
 # litreview
@@ -20,24 +19,36 @@ Survey the literature on a **topic**. For profiling a named **person**, use `sch
 - "Build me a bibliography / reading list on [topic]"
 - "How has the conversation about [concept] changed since [year]?"
 
+## Setup check
+
+Run `litreview --version` first. If the command is not found, install it with
+`uv tool install scholarlib` (or `pip install scholarlib`) and try again. If a run
+warns that no config file was found, `litreview --init-config` writes a template to
+`~/.config/scholarlib/config.yaml`; the tool still works without one, but on a much
+smaller daily API budget.
+
+**Unless the user has built the local JSTOR index, pass `--no-jstor`.** It is a
+large optional dataset that most installations do not have; without it the tool
+exits 5. See [references/JSTOR.md](references/JSTOR.md) for what that costs you.
+
 ## How to run
 
-Run from the repo root:
+The command works from any directory.
 
 ```bash
 # Narrative review (default) — Annual Review of Anthropology style
-python -m scholarlib.cli.litreview --query "multispecies ethnography" --since 2010
+litreview --query "multispecies ethnography" --since 2010 --no-jstor
 
 # Seed from works you already know are central (costs 0 API credits)
-python -m scholarlib.cli.litreview --query "plantation ecologies" \
+litreview --query "plantation ecologies" --no-jstor \
     --seed-doi 10.1215/22011919-3615934 --seed-doi 10.1525/ae.2015.42.1.1
 
 # Systematic mode, with screening counts
-python -m scholarlib.cli.litreview --query "infrastructure anthropology" \
+litreview --query "infrastructure anthropology" --no-jstor \
     --mode systematic --since 2015 --output json
 
 # Check the credit cost before spending anything
-python -m scholarlib.cli.litreview --query "…" --dry-run
+litreview --query "…" --dry-run
 ```
 
 **Always run `--dry-run` first** for an unfamiliar topic. It prints the credit plan
@@ -84,6 +95,9 @@ Practical rules the tool follows, and that you should respect when choosing flag
 - Screening is on title, abstract and metadata only — **no full text is assessed**.
 - The JSTOR index has no abstracts or references; it is a discovery and coverage check, and its
   records join to OpenAlex by title at roughly a 58% rate.
+- **Without the JSTOR index** (`--no-jstor`, the common case) the review sees only what OpenAlex
+  indexes. Monograph coverage is materially worse, which matters most in the humanities and
+  qualitative social sciences. Say so in the review.
 
 The tool emits a `limitations` block in its JSON. Carry it into the prose you write.
 
