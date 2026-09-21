@@ -21,6 +21,33 @@ def _cite(rec: dict) -> str:
     return f"{who} ({year})"
 
 
+def _access_routes(rec: dict) -> list[str]:
+    """How the reader can actually get this, best route first.
+
+    Ordered by what costs the reader least: something already on their shelf,
+    then a free copy, then an institutional one. Monographs are the reason this
+    is not simply the Unpaywall link — Unpaywall is article-centric and reports
+    most university-press books as closed even when a free edition exists, so
+    for books the Zotero and JSTOR signals do the real work.
+
+    A record with no route says so, rather than showing nothing: an absent
+    access line is otherwise indistinguishable from one that was never checked.
+    """
+    routes = []
+    if rec.get("in_zotero"):
+        ck = rec.get("zotero_citekey")
+        routes.append(f"**in your library**{f' [`{ck}`]' if ck else ''}")
+    if rec.get("oa_url"):
+        routes.append(f"[full text]({rec['oa_url']})")
+    elif rec.get("oa_status") and rec["oa_status"] != "closed":
+        routes.append(str(rec["oa_status"]))
+    if rec.get("jstor") and rec["jstor"].get("url"):
+        routes.append(f"[JSTOR]({rec['jstor']['url']})")
+    if not routes:
+        routes.append("no open copy found")
+    return routes
+
+
 def _entry(rec: dict, *, show_score: bool = False) -> str:
     bits = [f"- **{rec.get('title') or 'Untitled'}** — {_cite(rec)}"]
     meta = []
@@ -30,15 +57,7 @@ def _entry(rec: dict, *, show_score: bool = False) -> str:
         meta.append(f"{rec['cited_by_count']:,} citations")
     if rec.get("type") in ("book", "chapter"):
         meta.append(rec["type"])
-    if rec.get("in_zotero"):
-        ck = rec.get("zotero_citekey")
-        meta.append(f"**in your library**{f' [`{ck}`]' if ck else ''}")
-    if rec.get("oa_url"):
-        meta.append(f"[full text]({rec['oa_url']})")
-    elif rec.get("oa_status") and rec["oa_status"] != "closed":
-        meta.append(rec["oa_status"])
-    if rec.get("jstor"):
-        meta.append(f"[JSTOR]({rec['jstor'].get('url')})")
+    meta.extend(_access_routes(rec))
     if show_score:
         meta.append(f"score {rec.get('score', 0):.2f}")
     if meta:
