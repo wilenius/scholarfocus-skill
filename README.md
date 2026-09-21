@@ -1,7 +1,7 @@
 # scholarfocus-skill
 
 Two agent skills over one shared bibliographic library, for Claude Code, OpenClaw
-and any other assistant that can run a shell command.
+and any other agent – including humans! – that can run a shell command.
 
 | Skill | Object | Question it answers |
 |---|---|---|
