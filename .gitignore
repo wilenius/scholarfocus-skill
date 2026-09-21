@@ -38,3 +38,6 @@ venv/
 # Editor / agent local state
 .claude/settings.local.json
 .DS_Store
+
+# Generated review exports
+output/

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Optional
 
 from scholarlib.config import ConfigError, expand_path, load_config, warn_if_no_openalex_key
+from scholarlib.dedup import warn_if_fuzzy_degraded
 from scholarlib.http.budget import COSTS, BudgetExceeded
 from scholarlib.pipeline import abstracts, cluster, jstor_coverage, oa_links, rank, seed, snowball
 from scholarlib.pipeline.context import build_context
@@ -68,6 +69,7 @@ def run(args, cfg) -> int:
         enable_s2ag=args.enable_s2ag,
     )
     warn_if_no_openalex_key(cfg)
+    warn_if_fuzzy_degraded()
     _open_jstor(args, cfg, ctx)
 
     if args.dry_run:

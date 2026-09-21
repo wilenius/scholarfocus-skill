@@ -10,6 +10,7 @@ import logging
 from typing import Optional
 
 from scholarlib.pipeline.context import Context
+from scholarlib.progress import heartbeat
 from scholarlib.records import Record
 
 logger = logging.getLogger(__name__)
@@ -34,7 +35,7 @@ def assemble(ctx: Context, records: list[Record], *, level: str = "cheap",
                 len(missing), ", ".join(c for c in chain if c != "openalex"))
 
     counts: dict[str, int] = {}
-    for rec in missing:
+    for rec in heartbeat(missing, "abstracts", logger=logger, min_units=50):
         for source in chain:
             if source == "openalex" or rec.abstract:
                 continue

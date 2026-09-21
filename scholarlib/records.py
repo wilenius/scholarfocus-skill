@@ -2,10 +2,14 @@
 
 from __future__ import annotations
 
+import logging
 from dataclasses import dataclass, field, asdict
 from typing import Any, Iterable, Optional
 
 from scholarlib import dedup
+from scholarlib.progress import Heartbeat
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -149,11 +153,17 @@ def dedup_records(
 
     merged_into: dict[str, str] = {}
     final: dict[str, Record] = {r.key: r for r in remaining}
+    # Comparisons, not records: bucket sizes are quadratic, so the record count
+    # is a poor predictor of how long this pass runs.
+    comparisons = sum(len(b) * (len(b) - 1) // 2 for b in buckets.values() if len(b) > 1)
+    hb = Heartbeat("fuzzy dedup", logger=logger, total=comparisons,
+                   min_units=50_000)
     for bucket in buckets.values():
         if len(bucket) < 2:
             continue
         for i in range(len(bucket)):
             for j in range(i + 1, len(bucket)):
+                hb.tick()
                 a, b = bucket[i], bucket[j]
                 ka = merged_into.get(a.key, a.key)
                 kb = merged_into.get(b.key, b.key)
@@ -174,6 +184,7 @@ def dedup_records(
                     del final[kb]
                     merged_into[kb] = ka
                     stats["merged_fuzzy"] += 1
+    hb.done()
 
     # Keys may have been rewritten by merges; collapse once more on identity.
     collapsed: dict[str, Record] = {}

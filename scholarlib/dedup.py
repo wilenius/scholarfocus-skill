@@ -7,20 +7,42 @@ variously as `10.x`, `https://doi.org/10.x` and `doi:10.x` never merged.
 from __future__ import annotations
 
 import hashlib
+import logging
 import re
 import unicodedata
 from typing import Iterable, Optional
 
+logger = logging.getLogger(__name__)
+
 try:  # optional accelerator
     from rapidfuzz.fuzz import token_set_ratio as _token_set_ratio
+
+    FUZZY_BACKEND = "rapidfuzz"
 
     def _similarity(a: str, b: str) -> float:
         return _token_set_ratio(a, b) / 100.0
 except ImportError:  # stdlib fallback
     from difflib import SequenceMatcher
 
+    FUZZY_BACKEND = "difflib"
+
     def _similarity(a: str, b: str) -> float:
         return SequenceMatcher(None, a, b).ratio()
+
+
+def warn_if_fuzzy_degraded() -> None:
+    """The difflib fallback is ~50x slower, and it fails silently.
+
+    A corpus of a few thousand records turns the blocked fuzzy pass from
+    seconds into tens of minutes with no output, which reads as a hang rather
+    than as a missing dependency. Say so at startup instead.
+    """
+    if FUZZY_BACKEND != "rapidfuzz":
+        logger.warning(
+            "rapidfuzz not installed: fuzzy dedup falls back to difflib, which is "
+            "~50x slower and will appear to hang on corpora of a few thousand "
+            "records. Install it with: pip install 'scholarlib[fast]'"
+        )
 
 
 _DOI_RE = re.compile(r"^10\.\d{4,9}/\S+$")

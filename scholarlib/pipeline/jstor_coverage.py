@@ -16,6 +16,7 @@ from scholarlib.apis.openalex import LITREVIEW_WORK_FIELDS
 from scholarlib.http.budget import BudgetExceeded
 from scholarlib.jstor.query import put_map
 from scholarlib.pipeline.context import Context
+from scholarlib.progress import heartbeat
 from scholarlib.records import Record
 
 logger = logging.getLogger(__name__)
@@ -27,7 +28,7 @@ def annotate(ctx: Context, records: list[Record]) -> list[Record]:
     if idx is None:
         return records
     hits = 0
-    for rec in records:
+    for rec in heartbeat(records, "jstor match", logger=logger, min_units=200):
         hit, score, method = idx.find_match(rec)
         if hit and hit.jstor:
             rec.jstor = {**hit.jstor, "match_score": round(score, 3),
@@ -75,7 +76,7 @@ def discover(ctx: Context, queries: list[str], seen: list[Record], *,
                 len(candidates))
 
     joined = attempted = 0
-    for rec in candidates:
+    for rec in heartbeat(candidates, "jstor join probes", logger=logger, min_units=10):
         if attempted >= join_limit:
             break
         item_id = rec.jstor_item_id

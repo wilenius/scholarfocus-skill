@@ -24,6 +24,7 @@ from scholarlib.apis.semantic_scholar import SemanticScholarClient
 from scholarlib.apis.core_api import COREClient
 from scholarlib import dedup
 from scholarlib.config import ConfigError, load_config, warn_if_no_openalex_key
+from scholarlib.dedup import warn_if_fuzzy_degraded
 from scholarlib.http.budget import BudgetExceeded
 from scholarlib.pipeline.context import build_context
 from scholarlib.pipeline.disambiguate import (
@@ -443,6 +444,7 @@ def run(identifiers: list[str], cfg: dict, output_format: str,
     core = ctx.clients["core"]
     orcid = ctx.clients.get("orcid")
     warn_if_no_openalex_key(cfg)
+    warn_if_fuzzy_degraded()
 
     researcher_results: list[dict] = []
     all_researcher_author_ids: set[str] = set()
