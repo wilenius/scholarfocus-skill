@@ -143,10 +143,11 @@ citation databases miss. It is the difference between a review that sees
 monographs and one that does not, which matters most in the humanities and
 qualitative social sciences.
 
-It requires a metadata dump that **JSTOR distributes only to subscribing
+It requires a metadata dump that **JSTOR distributes only to members of subscribing
 institutions**, at <https://www.jstor.org/ta-support/metadata>. With an
 institutional account you get a gzipped JSONL file of about 1.3 GB, which builds
-into a ~6.7 GB SQLite FTS5 index in roughly eight minutes:
+into a ~6.7 GB SQLite FTS5 index in roughly eight minutes on a basic GPU-equipped
+desktop computer:
 
 ```bash
 # point jstor.source_path at the downloaded file, then
