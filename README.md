@@ -113,7 +113,8 @@ and its errors. Treat them as a skeleton to rename, merge or split, not as findi
 ## Zotero — recommended
 
 **Off by default, and worth turning on.** litreview can read your Zotero library
-over its local API, which changes the output in ways nothing else can:
+over either Zotero's local API or its Web API, which changes the output in ways
+nothing else can:
 
 - Results you already own are marked, so a reading list separates what you have
   from what you need to find.
@@ -122,19 +123,37 @@ over its local API, which changes the output in ways nothing else can:
 - A collection can seed a review through free OpenAlex lookups — a high-precision
   starting set at zero credit cost.
 
-Install [Zotero](https://www.zotero.org/download/), then enable *Settings →
-Advanced → "Allow other applications on this computer to communicate with
-Zotero"*. Set `zotero.enabled: true` in your config and pass `--zotero mark` (or
-`both`).
+For the default local backend, install [Zotero](https://www.zotero.org/download/),
+then enable *Settings → Advanced → "Allow other applications on this computer to
+communicate with Zotero"*. Set `zotero.enabled: true` in your config and pass
+`--zotero mark` (or `both`).
+
+For a server or other headless machine, use the Web API instead:
+
+```yaml
+zotero:
+  enabled: true
+  backend: web
+  library_type: user
+  library_id: "1234567"
+  api_key: "…"
+```
+
+Create a read-only key at <https://www.zotero.org/settings/keys>. Instead of
+putting credentials in YAML, you can export `ZOTERO_LIBRARY_ID`,
+`ZOTERO_LIBRARY_TYPE` and `ZOTERO_API_KEY`; explicit config values take
+precedence. A Web API item keeps its Better BibTeX citekey when that key is
+available as `citationKey` or a `Citation Key:` line in Extra.
 
 For conceptual search over your library — "find things I own that are *about*
 this" — add [`zotero-mcp`](https://github.com/54yyyu/zotero-mcp), an MCP server
 with a vector index over your library. It complements this integration rather
-than replacing it: `zotero-mcp` answers semantic questions, while `--zotero mark`
-does exact ownership matching. Feed DOIs from the former back in via `--seed-doi`.
+than replacing it: semantic results are approximate and may lag behind Zotero,
+while `--zotero mark` and collection seeding require the exact local or Web API.
+Feed DOIs found by semantic search back in via `--seed-doi`.
 
-The integration degrades quietly: if Zotero is closed, litreview logs one warning
-and carries on.
+The integration degrades quietly: if the selected backend is unavailable,
+litreview logs one warning and carries on.
 
 ## JSTOR — optional
 

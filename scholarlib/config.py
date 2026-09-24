@@ -27,7 +27,11 @@ DEFAULT_CFG: dict = {
     },
     "zotero": {
         "enabled": False,
-        "base_url": "http://localhost:23119/api/users/0",
+        "backend": "local",
+        "base_url": None,
+        "library_type": None,
+        "library_id": None,
+        "api_key": None,
     },
     "jstor": {
         "source_path": None,

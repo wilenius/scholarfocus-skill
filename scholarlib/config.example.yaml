@@ -31,10 +31,14 @@ apis:
   orcid: {}                           # public API, no credentials needed
 
 zotero:
-  enabled: false                      # set true once Zotero is installed and running
-  base_url: http://localhost:23119/api/users/0
-  # Requires the Zotero desktop app running, with
-  # Settings -> Advanced -> "Allow other applications on this computer to communicate with Zotero"
+  enabled: false
+  backend: local                      # local (default) or web
+  base_url: null                      # optional override; normally leave null
+  library_type: user                  # user or group (web backend only)
+  library_id: null                    # or set ZOTERO_LIBRARY_ID
+  api_key: null                       # or set ZOTERO_API_KEY; never commit the key
+  # local: requires the Zotero desktop app and its local API setting enabled.
+  # web: works headlessly through api.zotero.org; set library_id and api_key.
   # Strongly recommended: it marks which works you already own and supplies citekeys.
 
 jstor:

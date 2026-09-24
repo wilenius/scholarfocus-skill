@@ -49,7 +49,7 @@ def build_context(cfg: dict, *, use_cache: bool = True, refresh: bool = False,
     from scholarlib.apis.orcid import OrcidClient
     from scholarlib.apis.semantic_scholar import SemanticScholarClient
     from scholarlib.apis.unpaywall import UnpaywallClient
-    from scholarlib.apis.zotero_local import ZoteroLocalClient
+    from scholarlib.apis.zotero_local import ZoteroClient
 
     apis = cfg.get("apis") or {}
     cache_cfg = cfg.get("cache") or {}
@@ -82,9 +82,12 @@ def build_context(cfg: dict, *, use_cache: bool = True, refresh: bool = False,
             enabled=enable_s2ag or bool(s2_cfg.get("enabled")),
             **common),
         "orcid": OrcidClient(**common),
-        "zotero": ZoteroLocalClient(
-            base_url=(cfg.get("zotero") or {}).get("base_url",
-                                                   "http://localhost:23119/api/users/0"),
+        "zotero": ZoteroClient(
+            base_url=(cfg.get("zotero") or {}).get("base_url"),
+            backend=(cfg.get("zotero") or {}).get("backend", "local"),
+            library_type=(cfg.get("zotero") or {}).get("library_type"),
+            library_id=(cfg.get("zotero") or {}).get("library_id"),
+            api_key=(cfg.get("zotero") or {}).get("api_key"),
             enabled=bool((cfg.get("zotero") or {}).get("enabled", True)),
             **common),
     }

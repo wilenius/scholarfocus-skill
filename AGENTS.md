@@ -153,12 +153,13 @@ keys are already redacted — keep it that way.
   there is no public download, so assume outside users do not have it. Optional,
   and far too large to ship. Keep litreview honest about the monograph coverage
   `--no-jstor` costs. Never add the dump or the index to the repo.
-- **Zotero** — read over the local HTTP API at `localhost:23119`, which answers
-  only while the Zotero desktop app is running with *Allow other applications …*
-  enabled. **Off by default** (`zotero.enabled: false`, `--zotero off`) because
-  most installations have no Zotero; failures must degrade, not crash. The
-  separate `zotero-mcp` server complements this rather than replacing it — it
-  owns semantic search, the local API owns exact ownership matching.
+- **Zotero** — read through either the local HTTP API at `localhost:23119` or the
+  authenticated Web API at `api.zotero.org`. **Off by default**
+  (`zotero.enabled: false`, `--zotero off`) because most installations have no
+  Zotero; failures must degrade, not crash. The separate `zotero-mcp` server
+  complements these exact APIs rather than replacing them — semantic search is
+  approximate and may lag, so it must not decide ownership or collection
+  membership.
 
 ## Budget discipline
 

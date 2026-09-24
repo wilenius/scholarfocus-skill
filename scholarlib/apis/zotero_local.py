@@ -1,22 +1,25 @@
-"""Zotero local HTTP API bridge.
+"""Read-only Zotero bridge for the local and Web APIs.
 
-Read-only, and only answers while the Zotero desktop app is running with
-Settings -> Advanced -> "Allow other applications on this computer to
-communicate with Zotero" enabled.
+Both APIs expose the same item and collection shapes.  The local backend only
+answers while Zotero desktop is running; the web backend works headlessly and
+authenticates with Zotero's API key header.
 """
 
 from __future__ import annotations
 
 import logging
+import os
 from typing import Iterator, Optional
 
 from scholarlib import dedup
+from scholarlib.config import ConfigError
 from scholarlib.http.base import BaseClient
 from scholarlib.records import Record
 
 logger = logging.getLogger(__name__)
 
 DEFAULT_BASE = "http://localhost:23119/api/users/0"
+WEB_API_ROOT = "https://api.zotero.org"
 
 _TYPE_MAP = {
     "journalArticle": "article",
@@ -31,36 +34,90 @@ _TYPE_MAP = {
 _SKIP_TYPES = {"attachment", "note", "annotation"}
 
 
-class ZoteroLocalClient(BaseClient):
+class ZoteroClient(BaseClient):
     name = "zotero"
 
-    def __init__(self, base_url: str = DEFAULT_BASE, enabled: bool = True, **kw):
+    def __init__(self, base_url: Optional[str] = None, enabled: bool = True,
+                 backend: str = "local", library_type: Optional[str] = None,
+                 library_id: Optional[str] = None,
+                 api_key: Optional[str] = None, **kw):
         super().__init__(**kw)
-        self.base_url = base_url
+        self.backend = (backend or "local").strip().lower()
+        if self.backend not in {"local", "web"}:
+            raise ConfigError("zotero.backend must be 'local' or 'web'")
+
+        self.library_type = (
+            library_type or os.environ.get("ZOTERO_LIBRARY_TYPE") or "user"
+        ).strip().lower()
+        if self.backend == "web" and self.library_type not in {"user", "group"}:
+            raise ConfigError("zotero.library_type must be 'user' or 'group'")
+        self.library_id = str(
+            library_id or os.environ.get("ZOTERO_LIBRARY_ID") or ""
+        ).strip()
+        self.api_key = api_key or os.environ.get("ZOTERO_API_KEY")
+
+        if self.backend == "web":
+            scope = "users" if self.library_type == "user" else "groups"
+            self.base_url = base_url or (
+                f"{WEB_API_ROOT}/{scope}/{self.library_id}"
+                if self.library_id else WEB_API_ROOT
+            )
+        else:
+            self.base_url = base_url or DEFAULT_BASE
         self.enabled = enabled
         self._checked: Optional[bool] = None
 
     def _available(self) -> bool:
-        return self.enabled
+        return self.enabled and (self.backend == "local" or bool(self.library_id))
+
+    def _auth_headers(self) -> dict:
+        if self.backend != "web":
+            return {}
+        headers = {"Zotero-API-Version": "3"}
+        if self.api_key:
+            headers["Zotero-API-Key"] = self.api_key
+        return headers
 
     def available(self) -> bool:
         """Probe once; cache the answer for the run."""
         if self._checked is None:
             if not self.enabled:
                 self._checked = False
+            elif self.backend == "web" and not self.library_id:
+                self._checked = False
+                logger.warning(
+                    "Zotero Web API is not configured: set zotero.library_id "
+                    "or ZOTERO_LIBRARY_ID. Continuing without it."
+                )
             else:
                 self._checked = self.get("/items", {"limit": 1}, use_cache=False) is not None
                 if not self._checked:
-                    logger.warning(
-                        "Zotero is not reachable at %s. Start Zotero and enable "
-                        'Settings -> Advanced -> "Allow other applications on this '
-                        'computer to communicate with Zotero". Continuing without it.',
-                        self.base_url,
-                    )
+                    if self.backend == "web":
+                        logger.warning(
+                            "Zotero Web API is not reachable at %s. Check the "
+                            "library ID, API key and network connection. Continuing "
+                            "without it.", self.base_url,
+                        )
+                    else:
+                        logger.warning(
+                            "Zotero is not reachable at %s. Start Zotero and enable "
+                            'Settings -> Advanced -> "Allow other applications on this '
+                            'computer to communicate with Zotero". Continuing without it.',
+                            self.base_url,
+                        )
         return self._checked
 
     def collections(self) -> list[dict]:
-        return self.get("/collections", {"limit": 100}, use_cache=False) or []
+        out: list[dict] = []
+        start = 0
+        while True:
+            rows = self.get(
+                "/collections", {"limit": 100, "start": start}, use_cache=False
+            ) or []
+            out.extend(rows)
+            if len(rows) < 100:
+                return out
+            start += len(rows)
 
     def collection_by_name(self, name: str) -> Optional[dict]:
         target = (name or "").strip().casefold()
@@ -72,6 +129,7 @@ class ZoteroLocalClient(BaseClient):
     def items(self, *, collection_key: Optional[str] = None,
               limit: int = 100, max_items: int = 10000) -> Iterator[dict]:
         path = f"/collections/{collection_key}/items" if collection_key else "/items"
+        limit = min(max(1, limit), 100)
         start = 0
         while start < max_items:
             rows = self.get(path, {"limit": limit, "start": start}, use_cache=False)
@@ -100,6 +158,13 @@ class ZoteroLocalClient(BaseClient):
             if len(chunk) == 4 and chunk.isdigit():
                 year = int(chunk)
                 break
+        citekey = d.get("citationKey") or None
+        if not citekey:
+            for line in str(d.get("extra") or "").splitlines():
+                label, sep, value = line.partition(":")
+                if sep and label.strip().casefold() == "citation key":
+                    citekey = value.strip() or None
+                    break
         return Record(
             doi=d.get("DOI"),
             title=d.get("title"),
@@ -112,7 +177,7 @@ class ZoteroLocalClient(BaseClient):
             abstract_source="zotero" if d.get("abstractNote") else None,
             in_zotero=True,
             zotero_key=d.get("key"),
-            zotero_citekey=(d.get("citationKey") or None),
+            zotero_citekey=citekey,
             provenance=["zotero"],
         )
 
@@ -126,6 +191,11 @@ class ZoteroLocalClient(BaseClient):
                 out.append(rec)
         logger.info("Zotero: loaded %d items", len(out))
         return out
+
+
+# Backwards-compatible name for callers that imported the original local-only
+# client.  The default backend remains local.
+ZoteroLocalClient = ZoteroClient
 
 
 class ZoteroLookup:
