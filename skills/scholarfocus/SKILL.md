@@ -2,7 +2,12 @@
 name: scholarfocus
 description: Profile one or more named researchers (people) by name or ORCID ID. Resolves the person in OpenAlex and ORCID, fetches their works, and outputs ranked research interests, their main co-authors, and the external works they cite most. Use when the user names a specific scholar and asks what they work on, who they collaborate with, what they cite, or how the networks of two named scholars compare. Do NOT use for topic-based literature searches or literature reviews — use the litreview skill for those.
 license: MIT
-compatibility: Requires Python 3.11+ and internet access. Install the `scholarlib` package, which provides this skill's command: `uv tool install scholarlib` or `pip install scholarlib`. API emails and keys live in `~/.config/scholarlib/config.yaml`; create it with `scholarfocus --init-config`. See references/REFERENCE.md.
+compatibility: >-
+  Requires Python 3.11+ and internet access. Install the `scholarlib` package,
+  which provides this skill's command: `uv tool install scholarlib` or `pip
+  install scholarlib`. API emails and keys live in
+  `~/.config/scholarlib/config.yaml`; create it with `scholarfocus
+  --init-config`. See references/REFERENCE.md.
 metadata:
   author: wilenius
 ---
