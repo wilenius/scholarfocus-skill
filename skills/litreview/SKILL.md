@@ -2,6 +2,13 @@
 name: litreview
 description: Build a literature review on a topic or research question. Searches OpenAlex, snowballs citations forward and backward, checks a local JSTOR metadata index for books and book chapters that citation databases miss, assembles abstracts, adds open-access links, and outputs either a narrative/interpretive review (Annual Review style) or a systematic review with screening counts. Use when the user asks for a literature review, a state of the field, the key works on a topic, a reading list, or a bibliography on a subject. Do NOT use to profile a named individual researcher — use the scholarfocus skill for that.
 license: MIT
+compatibility: >-
+  Requires Python 3.11+ and internet access. Install the `scholarlib` package,
+  which provides this skill's command: `uv tool install scholarlib` or `pip
+  install scholarlib`. API emails and keys live in
+  `~/.config/scholarlib/config.yaml`; create it with `litreview --init-config`.
+  The local JSTOR index is optional and absent by default — see
+  references/JSTOR.md.
 metadata:
   author: wilenius
 ---
