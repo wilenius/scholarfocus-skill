@@ -65,78 +65,53 @@ changing shape — after that, breaking changes cost a major bump.
 
 ## Releasing
 
-```bash
-# 1. bump __version__ and plugin.json, commit
-# 2. build and validate
-rm -rf dist/
-python -m build
-twine check dist/*
+Releases run on GitHub Actions through PyPI Trusted Publishing: no API token
+exists anywhere, and the artifacts are always built from a clean checkout. The
+publisher is registered on the PyPI side against `.github/workflows/release.yml`
+by filename — **renaming that file breaks releases** until the registration is
+updated to match.
 
-# 3. rehearse on TestPyPI
+```bash
+# 1. bump __version__ in scholarlib/__init__.py AND "version" in
+#    .claude-plugin/plugin.json, commit
+# 2. run the acceptance test below
+# 3. tag; the push is the release
+git tag -a v0.4.0 -m "0.4.0" && git push --tags
+```
+
+`.github/workflows/ci.yml` runs the tests on 3.11 through 3.14 for every push to
+main and every PR. A green CI is not sufficient on its own — it tests a clone,
+not an installed wheel. See the acceptance test below.
+
+**A version number can never be reused on PyPI.** A botched `0.4.0` means
+`0.4.1`, not a re-upload, and the tag push publishes immediately with no approval
+gate unless one is added under GitHub *Settings* → *Environments* → `pypi`. Check
+the version numbers before tagging.
+
+Confirm a release landed with the simple index rather than the JSON API, which
+lags by minutes and will show the old version while the release is already live:
+
+```bash
+curl -s https://pypi.org/simple/scholarlib/ | grep -o 'scholarlib-[0-9.]*'
+```
+
+### Rehearsing on TestPyPI
+
+Worth doing for anything that touches packaging — `pyproject.toml`, package data,
+entry points — since those break only for installed users. Needs a TestPyPI API
+token; this path is manual and bypasses the workflow.
+
+```bash
+rm -rf dist/ && python -m build && twine check dist/*
 twine upload --repository testpypi dist/*
 uv tool install --index-url https://test.pypi.org/simple/ \
     --extra-index-url https://pypi.org/simple/ scholarlib
 scholarfocus --version && uv tool uninstall scholarlib
-
-# 4. publish for real, then tag
-twine upload dist/*
-git tag -a v0.3.0 -m "0.3.0" && git push --tags
 ```
 
-The extra index is required because `requests` and `pyyaml` are not on TestPyPI. If
-resolution ever picks up a wrong same-named package from TestPyPI, add
+The extra index is required because `requests` and `pyyaml` are not on TestPyPI.
+If resolution picks up a wrong same-named package from TestPyPI, add
 `--index-strategy unsafe-best-match`.
-
-**A version number can never be reused on PyPI.** A botched `0.3.0` means `0.3.1`,
-not a re-upload. That is what step 3 is for.
-
-## TODO: switch to Trusted Publishing
-
-**Not done yet.** 0.3.0 was published on 2026-09-22 with an API token typed by
-hand. Trusted Publishing replaces that with GitHub's OIDC identity, so no token
-is stored anywhere and releases happen on a tag push. Worth doing before the next
-release; it also removes the "did I remember to rebuild?" class of mistake, since
-the workflow always builds from a clean checkout.
-
-Both halves have to agree on the workflow filename, or PyPI rejects the upload.
-
-1. On PyPI: *Your projects* → `scholarlib` → *Manage* → *Publishing* → *GitHub
-   Actions*. Fill in owner `wilenius`, repository `scholarfocus-skill`, workflow
-   filename `release.yml`, environment name `pypi`. The environment is optional
-   but worth setting — it lets you require manual approval before a release runs.
-2. In GitHub: *Settings* → *Environments* → *New environment* → `pypi`, and add
-   yourself as a required reviewer if you want that approval gate.
-3. Commit `.github/workflows/release.yml`:
-
-```yaml
-name: release
-on:
-  push:
-    tags: ["v*"]
-
-jobs:
-  publish:
-    runs-on: ubuntu-latest
-    environment: pypi
-    permissions:
-      id-token: write          # mandatory for Trusted Publishing
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.11"
-      - run: pip install build
-      - run: python -m build
-      - uses: pypa/gh-action-pypi-publish@release/v1
-```
-
-After that the release procedure above collapses to: bump `__version__` and
-`plugin.json`, commit, `git tag -a v0.4.0 -m "0.4.0" && git push --tags`. Keep
-the TestPyPI rehearsal for anything touching packaging — a bad release still
-burns a version number.
-
-There is also no CI running the tests on push. The same workflow file pattern
-covers it, and is worth adding at the same time.
 
 ## This is an Arch/Manjaro box (PEP 668)
 
