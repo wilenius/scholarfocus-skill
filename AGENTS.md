@@ -90,8 +90,53 @@ resolution ever picks up a wrong same-named package from TestPyPI, add
 **A version number can never be reused on PyPI.** A botched `0.3.0` means `0.3.1`,
 not a re-upload. That is what step 3 is for.
 
-After the first real release, switch to Trusted Publishing (GitHub Actions on tag
-push, no stored token): PyPI → project → Publishing.
+## TODO: switch to Trusted Publishing
+
+**Not done yet.** 0.3.0 was published on 2026-09-22 with an API token typed by
+hand. Trusted Publishing replaces that with GitHub's OIDC identity, so no token
+is stored anywhere and releases happen on a tag push. Worth doing before the next
+release; it also removes the "did I remember to rebuild?" class of mistake, since
+the workflow always builds from a clean checkout.
+
+Both halves have to agree on the workflow filename, or PyPI rejects the upload.
+
+1. On PyPI: *Your projects* → `scholarlib` → *Manage* → *Publishing* → *GitHub
+   Actions*. Fill in owner `wilenius`, repository `scholarfocus-skill`, workflow
+   filename `release.yml`, environment name `pypi`. The environment is optional
+   but worth setting — it lets you require manual approval before a release runs.
+2. In GitHub: *Settings* → *Environments* → *New environment* → `pypi`, and add
+   yourself as a required reviewer if you want that approval gate.
+3. Commit `.github/workflows/release.yml`:
+
+```yaml
+name: release
+on:
+  push:
+    tags: ["v*"]
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write          # mandatory for Trusted Publishing
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install build
+      - run: python -m build
+      - uses: pypa/gh-action-pypi-publish@release/v1
+```
+
+After that the release procedure above collapses to: bump `__version__` and
+`plugin.json`, commit, `git tag -a v0.4.0 -m "0.4.0" && git push --tags`. Keep
+the TestPyPI rehearsal for anything touching packaging — a bad release still
+burns a version number.
+
+There is also no CI running the tests on push. The same workflow file pattern
+covers it, and is worth adding at the same time.
 
 ## This is an Arch/Manjaro box (PEP 668)
 
